@@ -671,7 +671,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "sum(keda_resource_registered_total{type=\"scaled_job\"})",
           "instant": false,
@@ -1239,7 +1239,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "sum by (container) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\"})",
           "hide": true,
@@ -1251,7 +1251,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "sum by (container) (kube_pod_container_resource_requests{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"cpu\"})",
           "hide": true,
@@ -1263,7 +1263,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "sum by (container) (container_memory_working_set_bytes{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\"})",
           "hide": true,
@@ -1275,7 +1275,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "sum by (container) (kube_pod_container_resource_requests{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"memory\"})",
           "hide": true,
@@ -1287,7 +1287,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "sum by (container) (kube_pod_container_resource_limits{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"cpu\"})",
           "hide": true,
@@ -1299,7 +1299,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "sum by (container) (kube_pod_container_resource_limits{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"memory\"})",
           "hide": true,
@@ -1478,7 +1478,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "sum by (container) (kube_pod_container_resource_requests{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"cpu\"})",
           "instant": false,
@@ -1490,7 +1490,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "sum by (container) (kube_pod_container_resource_limits{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"cpu\"})",
           "instant": false,
@@ -1660,7 +1660,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "sum by (container) (kube_pod_container_resource_requests{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"memory\"})",
           "instant": false,
@@ -1672,7 +1672,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "sum by (container) (kube_pod_container_resource_limits{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"memory\"})",
           "instant": false,
@@ -2580,7 +2580,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "max by (namespace, scaledObject, scaletargetref_kind, scaletargetref_name) (label_replace(kube_horizontalpodautoscaler_info{horizontalpodautoscaler=~\"keda-hpa-.+\", namespace=~\"$namespace\"}, \"scaledObject\", \"$1\", \"horizontalpodautoscaler\", \"keda-hpa-(.*)\"))",
           "hide": true,
@@ -2592,7 +2592,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "max by (namespace, scaledObject) (label_replace(kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler=~\"keda-hpa-.+\", namespace=~\"$namespace\"}, \"scaledObject\", \"$1\", \"horizontalpodautoscaler\", \"keda-hpa-(.*)\"))",
           "hide": true,
@@ -2604,7 +2604,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "max by (namespace, scaledObject) (label_replace(kube_horizontalpodautoscaler_spec_min_replicas{horizontalpodautoscaler=~\"keda-hpa-.+\", namespace=~\"$namespace\"}, \"scaledObject\", \"$1\", \"horizontalpodautoscaler\", \"keda-hpa-(.*)\"))",
           "hide": true,
@@ -2616,7 +2616,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "max by (namespace, scaledObject) (label_replace(kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler=~\"keda-hpa-.+\", namespace=~\"$namespace\"}, \"scaledObject\", \"$1\", \"horizontalpodautoscaler\", \"keda-hpa-(.*)\"))",
           "hide": true,
@@ -2628,7 +2628,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "max by (exported_namespace, scaledObject) (rate(keda_scaled_object_errors_total{exported_namespace=~\"$namespace\"}[5m]))",
           "hide": true,
@@ -2640,7 +2640,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "max by (namespace, scaledObject, scaler) (rate(keda_scaler_detail_errors_total{exported_namespace=~\"$namespace\"}[5m]))",
           "hide": true,
@@ -2652,7 +2652,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "max by (exported_namespace, scaledObject, scaler) (keda_scaler_metrics_value{exported_namespace=~\"$namespace\"})",
           "hide": true,
@@ -3116,7 +3116,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "histogram_quantile(0.95, sum by (le, controller) (rate(controller_runtime_reconcile_time_seconds_bucket[2m])))",
           "instant": false,
@@ -3128,7 +3128,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "histogram_quantile(0.50, sum by (le, controller) (rate(controller_runtime_reconcile_time_seconds_bucket[2m])))",
           "instant": false,
@@ -3449,7 +3449,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "histogram_quantile(0.95, sum by (le, name) (rate(workqueue_queue_duration_seconds_bucket[$__rate_interval])))",
           "instant": false,
@@ -3461,7 +3461,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "histogram_quantile(0.50, sum by (le, name) (rate(workqueue_queue_duration_seconds_bucket[$__rate_interval])))",
           "instant": false,
@@ -3671,7 +3671,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "histogram_quantile(0.95, sum by (le, name) (rate(workqueue_work_duration_seconds_bucket[$__rate_interval])))",
           "instant": false,
@@ -3683,7 +3683,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "histogram_quantile(0.50, sum by (le, name) (rate(workqueue_work_duration_seconds_bucket[$__rate_interval])))",
           "instant": false,
@@ -4004,7 +4004,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "histogram_quantile(0.95, sum by (le, grpc_method, grpc_service) (rate(keda_internal_metricsservice_grpc_server_handling_seconds_bucket[$__rate_interval])))",
           "instant": false,
@@ -4016,7 +4016,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "uid": "$datasource"
           },
           "expr": "histogram_quantile(0.50, sum by (le, grpc_method, grpc_service) (rate(keda_internal_metricsservice_grpc_server_handling_seconds_bucket[$__rate_interval])))",
           "instant": false,
