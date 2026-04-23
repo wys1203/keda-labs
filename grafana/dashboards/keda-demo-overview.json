@@ -790,8 +790,8 @@
     },
     {
       "datasource": {
-        "type": "mixed",
-        "uid": "-- Mixed --"
+        "type": "prometheus",
+        "uid": "$datasource"
       },
       "description": "CPU and memory request/limit vs actual usage per KEDA component",
       "fieldConfig": {
@@ -1230,95 +1230,14 @@
             "uid": "$datasource"
           },
           "expr": "count by (container) (kube_pod_container_info{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\"})",
-          "hide": true,
+          "hide": false,
           "instant": true,
           "queryType": "instant",
           "range": false,
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "sum by (container) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\"})",
-          "hide": true,
-          "instant": true,
-          "queryType": "instant",
-          "range": false,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "sum by (container) (kube_pod_container_resource_requests{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"cpu\"})",
-          "hide": true,
-          "instant": true,
-          "queryType": "instant",
-          "range": false,
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "sum by (container) (container_memory_working_set_bytes{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\"})",
-          "hide": true,
-          "instant": true,
-          "queryType": "instant",
-          "range": false,
-          "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "sum by (container) (kube_pod_container_resource_requests{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"memory\"})",
-          "hide": true,
-          "instant": true,
-          "queryType": "instant",
-          "range": false,
-          "refId": "E"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "sum by (container) (kube_pod_container_resource_limits{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"cpu\"})",
-          "hide": true,
-          "instant": true,
-          "queryType": "instant",
-          "range": false,
-          "refId": "G"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "sum by (container) (kube_pod_container_resource_limits{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"memory\"})",
-          "hide": true,
-          "instant": true,
-          "queryType": "instant",
-          "range": false,
-          "refId": "H"
-        },
-        {
-          "datasource": {
-            "type": "__expr__",
-            "uid": "__expr__"
-          },
-          "expression": "SELECT A.container AS Component, A.__value__ AS Pods, B.__value__ AS CPUUsage, C.__value__ AS CPURequest, CASE WHEN C.__value__ > 0 THEN B.__value__ / C.__value__ ELSE NULL END AS CPUReqRatio, G.__value__ AS CPULimit, CASE WHEN G.__value__ > 0 THEN B.__value__ / G.__value__ ELSE NULL END AS CPULimRatio, D.__value__ AS MemUsage, E.__value__ AS MemRequest, CASE WHEN E.__value__ > 0 THEN D.__value__ / E.__value__ ELSE NULL END AS MemReqRatio, H.__value__ AS MemLimit, CASE WHEN H.__value__ > 0 THEN D.__value__ / H.__value__ ELSE NULL END AS MemLimRatio FROM A LEFT JOIN B ON A.container = B.container LEFT JOIN C ON A.container = C.container LEFT JOIN D ON A.container = D.container LEFT JOIN E ON A.container = E.container LEFT JOIN G ON A.container = G.container LEFT JOIN H ON A.container = H.container LIMIT 20",
-          "refId": "F",
-          "type": "sql"
         }
       ],
-      "title": "Component Resource Usage",
+      "title": "KEDA Component Pod Count",
       "type": "table"
     },
     {
@@ -2095,8 +2014,8 @@
     },
     {
       "datasource": {
-        "type": "mixed",
-        "uid": "-- Mixed --"
+        "type": "prometheus",
+        "uid": "$datasource"
       },
       "description": "Per-resource detail: trigger, scale target, replicas, utilization, error rate",
       "fieldConfig": {
@@ -2571,107 +2490,14 @@
             "uid": "$datasource"
           },
           "expr": "max by (exported_namespace, scaledObject, scaler) (keda_scaler_active{exported_namespace=~\"$namespace\"})",
-          "hide": true,
+          "hide": false,
           "instant": true,
           "queryType": "instant",
           "range": false,
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "max by (namespace, scaledObject, scaletargetref_kind, scaletargetref_name) (label_replace(kube_horizontalpodautoscaler_info{horizontalpodautoscaler=~\"keda-hpa-.+\", namespace=~\"$namespace\"}, \"scaledObject\", \"$1\", \"horizontalpodautoscaler\", \"keda-hpa-(.*)\"))",
-          "hide": true,
-          "instant": true,
-          "queryType": "instant",
-          "range": false,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "max by (namespace, scaledObject) (label_replace(kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler=~\"keda-hpa-.+\", namespace=~\"$namespace\"}, \"scaledObject\", \"$1\", \"horizontalpodautoscaler\", \"keda-hpa-(.*)\"))",
-          "hide": true,
-          "instant": true,
-          "queryType": "instant",
-          "range": false,
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "max by (namespace, scaledObject) (label_replace(kube_horizontalpodautoscaler_spec_min_replicas{horizontalpodautoscaler=~\"keda-hpa-.+\", namespace=~\"$namespace\"}, \"scaledObject\", \"$1\", \"horizontalpodautoscaler\", \"keda-hpa-(.*)\"))",
-          "hide": true,
-          "instant": true,
-          "queryType": "instant",
-          "range": false,
-          "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "max by (namespace, scaledObject) (label_replace(kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler=~\"keda-hpa-.+\", namespace=~\"$namespace\"}, \"scaledObject\", \"$1\", \"horizontalpodautoscaler\", \"keda-hpa-(.*)\"))",
-          "hide": true,
-          "instant": true,
-          "queryType": "instant",
-          "range": false,
-          "refId": "E"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "max by (exported_namespace, scaledObject) (rate(keda_scaled_object_errors_total{exported_namespace=~\"$namespace\"}[5m]))",
-          "hide": true,
-          "instant": true,
-          "queryType": "instant",
-          "range": false,
-          "refId": "G"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "max by (namespace, scaledObject, scaler) (rate(keda_scaler_detail_errors_total{exported_namespace=~\"$namespace\"}[5m]))",
-          "hide": true,
-          "instant": true,
-          "queryType": "instant",
-          "range": false,
-          "refId": "H"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "expr": "max by (exported_namespace, scaledObject, scaler) (keda_scaler_metrics_value{exported_namespace=~\"$namespace\"})",
-          "hide": true,
-          "instant": true,
-          "queryType": "instant",
-          "range": false,
-          "refId": "I"
-        },
-        {
-          "datasource": {
-            "type": "__expr__",
-            "uid": "__expr__"
-          },
-          "expression": "SELECT CASE WHEN B.scaletargetref_kind IS NOT NULL THEN 'ScaledObject' ELSE 'ScaledJob' END AS ResourceType, A.__value__ AS Active, A.exported_namespace AS Namespace, A.scaledObject AS Name, A.scaler AS TriggerType, B.scaletargetref_kind AS ScaleKind, B.scaletargetref_name AS ScaleTarget, C.__value__ AS Current, D.__value__ AS Min, E.__value__ AS Max, CASE WHEN E.__value__ > 0 THEN C.__value__ / E.__value__ ELSE NULL END AS UtilPct, I.__value__ AS TriggerValue, H.__value__ AS ScalerErrRate, G.__value__ AS ObjErrRate FROM A LEFT JOIN B ON A.exported_namespace = B.namespace AND A.scaledObject = B.scaledObject LEFT JOIN C ON A.exported_namespace = C.namespace AND A.scaledObject = C.scaledObject LEFT JOIN D ON A.exported_namespace = D.namespace AND A.scaledObject = D.scaledObject LEFT JOIN E ON A.exported_namespace = E.namespace AND A.scaledObject = E.scaledObject LEFT JOIN G ON A.exported_namespace = G.exported_namespace AND A.scaledObject = G.scaledObject LEFT JOIN H ON A.exported_namespace = H.namespace AND A.scaledObject = H.scaledObject AND A.scaler = H.scaler LEFT JOIN I ON A.exported_namespace = I.exported_namespace AND A.scaledObject = I.scaledObject AND A.scaler = I.scaler LIMIT 100",
-          "refId": "F",
-          "type": "sql"
         }
       ],
-      "title": "ScaledObject / ScaledJob Details",
+      "title": "ScaledObject / Scaler Activity",
       "type": "table"
     },
     {
