@@ -1,0 +1,29 @@
+image:
+  tag: 11.1.0
+
+service:
+  type: ClusterIP
+  port: 80
+
+adminUser: admin
+adminPassword: admin
+
+persistence:
+  enabled: false
+
+env:
+  GF_SERVER_ROOT_URL: http://localhost:3000
+
+extraConfigmapMounts:
+  - name: grafana-datasources
+    configMap: grafana-datasources
+    mountPath: /etc/grafana/provisioning/datasources
+    readOnly: true
+  - name: grafana-dashboard-providers
+    configMap: grafana-dashboard-providers
+    mountPath: /etc/grafana/provisioning/dashboards
+    readOnly: true
+  - name: grafana-dashboards
+    configMap: grafana-dashboards
+    mountPath: /var/lib/grafana/dashboards/keda-lab
+    readOnly: true
