@@ -33,9 +33,9 @@
       "title": "KEDA Operator",
       "description": "1 = healthy & being scraped. Drives every reconcile.",
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "min(up{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"})", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "min(up{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"})", "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": {
         "defaults": {
@@ -55,9 +55,9 @@
       "title": "Metrics API Server",
       "description": "Serves the external.metrics.k8s.io API to HPAs.",
       "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "min(up{app_kubernetes_io_name=\"keda-operator-metrics-apiserver\", job=\"kubernetes-service-endpoints\"})", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "min(up{app_kubernetes_io_name=\"keda-operator-metrics-apiserver\", job=\"kubernetes-service-endpoints\"})", "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": {
         "defaults": {
@@ -77,9 +77,9 @@
       "title": "Admission Webhooks",
       "description": "Validates ScaledObject/ScaledJob CRs at apply time.",
       "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "min(up{app_kubernetes_io_name=\"keda-admission-webhooks\", job=\"kubernetes-service-endpoints\"})", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "min(up{app_kubernetes_io_name=\"keda-admission-webhooks\", job=\"kubernetes-service-endpoints\"})", "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": {
         "defaults": {
@@ -98,9 +98,9 @@
       "id": 104,
       "title": "KEDA Version",
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "max by (version) (keda_build_info{job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "{{version}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "max by (version) (keda_build_info{job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "{{version}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "blue" } ] } } },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "name", "reduceOptions": { "calcs": ["lastNotNull"] } }
@@ -111,9 +111,9 @@
       "title": "Firing alerts",
       "description": "KEDA + demo alerts currently firing.",
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "count(ALERTS{alertstate=\"firing\", component=~\"keda|demo\"}) or vector(0)", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "count(ALERTS{alertstate=\"firing\", component=~\"keda|demo\"}) or vector(0)", "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": {
         "defaults": {
@@ -137,9 +137,9 @@
       "id": 201,
       "title": "ScaledObjects",
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 6 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "sum(keda_resource_registered_total{type=\"scaled_object\", job=\"kubernetes-service-endpoints\"})", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "sum(keda_resource_registered_total{type=\"scaled_object\", job=\"kubernetes-service-endpoints\"})", "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "blue" } ] } } },
       "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } }
@@ -149,9 +149,9 @@
       "id": 202,
       "title": "ScaledJobs",
       "gridPos": { "h": 4, "w": 4, "x": 4, "y": 6 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "sum(keda_resource_registered_total{type=\"scaled_job\", job=\"kubernetes-service-endpoints\"}) or vector(0)", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "sum(keda_resource_registered_total{type=\"scaled_job\", job=\"kubernetes-service-endpoints\"}) or vector(0)", "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "blue" } ] } } },
       "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } }
@@ -161,9 +161,9 @@
       "id": 203,
       "title": "TriggerAuthentications",
       "gridPos": { "h": 4, "w": 4, "x": 8, "y": 6 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "sum(keda_resource_registered_total{type=~\".*trigger_authentication.*\", job=\"kubernetes-service-endpoints\"}) or vector(0)", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "sum(keda_resource_registered_total{type=~\".*trigger_authentication.*\", job=\"kubernetes-service-endpoints\"}) or vector(0)", "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "blue" } ] } } },
       "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } }
@@ -174,9 +174,9 @@
       "title": "Paused ScaledObjects",
       "description": "Non-zero means autoscaling is suspended on at least one ScaledObject.",
       "gridPos": { "h": 4, "w": 4, "x": 12, "y": 6 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "sum(keda_scaled_object_paused{job=\"kubernetes-service-endpoints\"}) or vector(0)", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "sum(keda_scaled_object_paused{job=\"kubernetes-service-endpoints\"}) or vector(0)", "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": {
         "defaults": {
@@ -191,9 +191,9 @@
       "id": 205,
       "title": "Trigger types in use",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 6 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "sort_desc(sum by(type) (keda_trigger_registered_total{job=\"kubernetes-service-endpoints\"}))", "refId": "A", "format": "table", "instant": true, "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "sort_desc(sum by(type) (keda_trigger_registered_total{job=\"kubernetes-service-endpoints\"}))", "refId": "A", "format": "table", "instant": true, "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "transformations": [
         { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "Value": "count" } } }
@@ -204,9 +204,9 @@
       "id": 206,
       "title": "Resource counts over time",
       "gridPos": { "h": 8, "w": 16, "x": 0, "y": 10 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "sum by(type) (keda_resource_registered_total{job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "{{type}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "sum by(type) (keda_resource_registered_total{job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "{{type}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "stacking": { "mode": "none" } }, "min": 0 } },
       "options": { "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "calcs": ["lastNotNull"] } }
@@ -226,9 +226,9 @@
       "title": "ScaledObject error rate",
       "description": "Rate of keda_scaled_object_errors_total. > 0 sustained 5m fires KedaScaledObjectErrors.",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "sum by (scaledObject, namespace) (rate(keda_scaled_object_errors_total{job=\"kubernetes-service-endpoints\"}[$__rate_interval]))", "refId": "A", "legendFormat": "{{namespace}}/{{scaledObject}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "sum by (scaledObject, namespace) (rate(keda_scaled_object_errors_total{job=\"kubernetes-service-endpoints\"}[$__rate_interval]))", "refId": "A", "legendFormat": "{{namespace}}/{{scaledObject}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "unit": "ops", "min": 0 } },
       "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } }
@@ -239,9 +239,9 @@
       "title": "Controller reconcile errors",
       "description": "Operator-side controller-runtime errors. > 0 for 10m fires KedaReconcileErrors.",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "sum by (controller) (rate(controller_runtime_reconcile_errors_total{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval]))", "refId": "A", "legendFormat": "{{controller}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "sum by (controller) (rate(controller_runtime_reconcile_errors_total{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval]))", "refId": "A", "legendFormat": "{{controller}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "unit": "ops", "min": 0 } },
       "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } }
@@ -251,11 +251,11 @@
       "id": 303,
       "title": "Reconcile duration (p50/p95/p99)",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "histogram_quantile(0.50, sum by (le, controller) (rate(controller_runtime_reconcile_time_seconds_bucket{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval])))", "refId": "A", "legendFormat": "p50 {{controller}}", "datasource": { "type": "prometheus", "uid": "prometheus" } },
-        { "expr": "histogram_quantile(0.95, sum by (le, controller) (rate(controller_runtime_reconcile_time_seconds_bucket{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval])))", "refId": "B", "legendFormat": "p95 {{controller}}", "datasource": { "type": "prometheus", "uid": "prometheus" } },
-        { "expr": "histogram_quantile(0.99, sum by (le, controller) (rate(controller_runtime_reconcile_time_seconds_bucket{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval])))", "refId": "C", "legendFormat": "p99 {{controller}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "histogram_quantile(0.50, sum by (le, controller) (rate(controller_runtime_reconcile_time_seconds_bucket{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval])))", "refId": "A", "legendFormat": "p50 {{controller}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } },
+        { "expr": "histogram_quantile(0.95, sum by (le, controller) (rate(controller_runtime_reconcile_time_seconds_bucket{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval])))", "refId": "B", "legendFormat": "p95 {{controller}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } },
+        { "expr": "histogram_quantile(0.99, sum by (le, controller) (rate(controller_runtime_reconcile_time_seconds_bucket{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval])))", "refId": "C", "legendFormat": "p99 {{controller}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "unit": "s", "min": 0 } },
       "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true, "calcs": ["lastNotNull", "max"] } }
@@ -265,9 +265,9 @@
       "id": 304,
       "title": "Active reconcile workers",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 27 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "sum by (controller) (controller_runtime_active_workers{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "{{controller}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "sum by (controller) (controller_runtime_active_workers{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "{{controller}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "min": 0 } },
       "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } }
@@ -288,9 +288,9 @@
       "title": "Server handled rate (operator side)",
       "description": "rate of keda_internal_metricsservice_grpc_server_handled_total per grpc_code. Non-OK codes signal adapter requests failing.",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "sum by (grpc_method, grpc_code) (rate(keda_internal_metricsservice_grpc_server_handled_total{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval]))", "refId": "A", "legendFormat": "{{grpc_method}} {{grpc_code}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "sum by (grpc_method, grpc_code) (rate(keda_internal_metricsservice_grpc_server_handled_total{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval]))", "refId": "A", "legendFormat": "{{grpc_method}} {{grpc_code}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": {
         "defaults": { "unit": "ops", "min": 0 },
@@ -307,9 +307,9 @@
       "title": "Client handled rate (adapter side)",
       "description": "rate of keda_internal_metricsservice_grpc_client_handled_total. Should mirror server-side traffic.",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "sum by (grpc_method, grpc_code) (rate(keda_internal_metricsservice_grpc_client_handled_total{app_kubernetes_io_name=\"keda-operator-metrics-apiserver\", job=\"kubernetes-service-endpoints\"}[$__rate_interval]))", "refId": "A", "legendFormat": "{{grpc_method}} {{grpc_code}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "sum by (grpc_method, grpc_code) (rate(keda_internal_metricsservice_grpc_client_handled_total{app_kubernetes_io_name=\"keda-operator-metrics-apiserver\", job=\"kubernetes-service-endpoints\"}[$__rate_interval]))", "refId": "A", "legendFormat": "{{grpc_method}} {{grpc_code}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "unit": "ops", "min": 0 } },
       "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true, "calcs": ["lastNotNull"] } }
@@ -319,11 +319,11 @@
       "id": 353,
       "title": "Server handling latency p50/p95/p99",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 44 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "histogram_quantile(0.50, sum by (le, grpc_method) (rate(keda_internal_metricsservice_grpc_server_handling_seconds_bucket{job=\"kubernetes-service-endpoints\"}[$__rate_interval])))", "refId": "A", "legendFormat": "p50 {{grpc_method}}", "datasource": { "type": "prometheus", "uid": "prometheus" } },
-        { "expr": "histogram_quantile(0.95, sum by (le, grpc_method) (rate(keda_internal_metricsservice_grpc_server_handling_seconds_bucket{job=\"kubernetes-service-endpoints\"}[$__rate_interval])))", "refId": "B", "legendFormat": "p95 {{grpc_method}}", "datasource": { "type": "prometheus", "uid": "prometheus" } },
-        { "expr": "histogram_quantile(0.99, sum by (le, grpc_method) (rate(keda_internal_metricsservice_grpc_server_handling_seconds_bucket{job=\"kubernetes-service-endpoints\"}[$__rate_interval])))", "refId": "C", "legendFormat": "p99 {{grpc_method}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "histogram_quantile(0.50, sum by (le, grpc_method) (rate(keda_internal_metricsservice_grpc_server_handling_seconds_bucket{job=\"kubernetes-service-endpoints\"}[$__rate_interval])))", "refId": "A", "legendFormat": "p50 {{grpc_method}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } },
+        { "expr": "histogram_quantile(0.95, sum by (le, grpc_method) (rate(keda_internal_metricsservice_grpc_server_handling_seconds_bucket{job=\"kubernetes-service-endpoints\"}[$__rate_interval])))", "refId": "B", "legendFormat": "p95 {{grpc_method}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } },
+        { "expr": "histogram_quantile(0.99, sum by (le, grpc_method) (rate(keda_internal_metricsservice_grpc_server_handling_seconds_bucket{job=\"kubernetes-service-endpoints\"}[$__rate_interval])))", "refId": "C", "legendFormat": "p99 {{grpc_method}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "unit": "s", "min": 0 } },
       "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true, "calcs": ["lastNotNull", "max"] } }
@@ -334,9 +334,9 @@
       "title": "In-flight messages diff",
       "description": "msg_received_total - msg_sent_total. Persistently > 0 means responses are stuck.",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 44 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "sum by (grpc_method) (keda_internal_metricsservice_grpc_server_msg_received_total{job=\"kubernetes-service-endpoints\"} - keda_internal_metricsservice_grpc_server_msg_sent_total{job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "server {{grpc_method}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "sum by (grpc_method) (keda_internal_metricsservice_grpc_server_msg_received_total{job=\"kubernetes-service-endpoints\"} - keda_internal_metricsservice_grpc_server_msg_sent_total{job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "server {{grpc_method}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "min": 0 } },
       "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } }
@@ -357,9 +357,9 @@
       "title": "Active scalers",
       "description": "1 = scaler currently activating (above activationThreshold).",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 53 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "max by (namespace, scaledObject, scaler) (keda_scaler_active{job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "max by (namespace, scaledObject, scaler) (keda_scaler_active{job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "min": 0, "max": 1 } },
       "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } }
@@ -370,9 +370,9 @@
       "title": "Scaler metrics value",
       "description": "Current value the scaler reads from the upstream trigger. Compare to the trigger's `threshold` to predict scale decisions.",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 53 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "max by (namespace, scaledObject, scaler, metric) (keda_scaler_metrics_value{job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}} ({{metric}})", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "max by (namespace, scaledObject, scaler, metric) (keda_scaler_metrics_value{job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}} ({{metric}})", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "min": 0 } },
       "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } }
@@ -383,9 +383,9 @@
       "title": "Scaler fetch latency",
       "description": "Time the operator spends asking the upstream trigger source. Above 1s for 10m fires KedaScalerMetricsLatencyHigh.",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 61 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "max by (namespace, scaledObject, scaler) (keda_scaler_metrics_latency_seconds{job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "max by (namespace, scaledObject, scaler) (keda_scaler_metrics_latency_seconds{job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "unit": "s", "min": 0 } },
       "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } }
@@ -396,9 +396,9 @@
       "title": "Scaler errors rate",
       "description": "rate(keda_scaler_detail_errors_total). > 0.1/s sustained 10m fires KedaScalerErrors.",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 61 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
-        { "expr": "sum by (namespace, scaledObject, scaler) (rate(keda_scaler_detail_errors_total{job=\"kubernetes-service-endpoints\"}[$__rate_interval]))", "refId": "A", "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+        { "expr": "sum by (namespace, scaledObject, scaler) (rate(keda_scaler_detail_errors_total{job=\"kubernetes-service-endpoints\"}[$__rate_interval]))", "refId": "A", "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
       ],
       "fieldConfig": { "defaults": { "unit": "ops", "min": 0 } },
       "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } }
@@ -417,9 +417,9 @@
           "title": "Depth",
           "description": "> 25 sustained 10m fires KedaWorkqueueBacklog.",
           "gridPos": { "h": 7, "w": 12, "x": 0, "y": 70 },
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
           "targets": [
-            { "expr": "max by (name) (workqueue_depth{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+            { "expr": "max by (name) (workqueue_depth{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"})", "refId": "A", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
           ],
           "fieldConfig": { "defaults": { "min": 0 } }
         },
@@ -428,9 +428,9 @@
           "id": 502,
           "title": "Adds rate",
           "gridPos": { "h": 7, "w": 12, "x": 12, "y": 70 },
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
           "targets": [
-            { "expr": "sum by (name) (rate(workqueue_adds_total{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval]))", "refId": "A", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+            { "expr": "sum by (name) (rate(workqueue_adds_total{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval]))", "refId": "A", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
           ],
           "fieldConfig": { "defaults": { "unit": "ops", "min": 0 } }
         },
@@ -439,9 +439,9 @@
           "id": 503,
           "title": "Retries rate",
           "gridPos": { "h": 7, "w": 12, "x": 0, "y": 77 },
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
           "targets": [
-            { "expr": "sum by (name) (rate(workqueue_retries_total{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval]))", "refId": "A", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+            { "expr": "sum by (name) (rate(workqueue_retries_total{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval]))", "refId": "A", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
           ],
           "fieldConfig": { "defaults": { "unit": "ops", "min": 0 } }
         },
@@ -450,9 +450,9 @@
           "id": 504,
           "title": "Work duration p99",
           "gridPos": { "h": 7, "w": 12, "x": 12, "y": 77 },
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
           "targets": [
-            { "expr": "histogram_quantile(0.99, sum by (le, name) (rate(workqueue_work_duration_seconds_bucket{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval])))", "refId": "A", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+            { "expr": "histogram_quantile(0.99, sum by (le, name) (rate(workqueue_work_duration_seconds_bucket{app_kubernetes_io_name=\"keda-operator\", job=\"kubernetes-service-endpoints\"}[$__rate_interval])))", "refId": "A", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
           ],
           "fieldConfig": { "defaults": { "unit": "s", "min": 0 } }
         }
@@ -471,11 +471,11 @@
           "id": 601,
           "title": "CPU usage (cores)",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 71 },
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
           "targets": [
-            { "expr": "sum by (container) (rate(container_cpu_usage_seconds_total{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\"}[5m]))", "refId": "A", "legendFormat": "{{container}} usage", "datasource": { "type": "prometheus", "uid": "prometheus" } },
-            { "expr": "sum by (container) (kube_pod_container_resource_requests{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"cpu\"})", "refId": "B", "legendFormat": "{{container}} request", "datasource": { "type": "prometheus", "uid": "prometheus" } },
-            { "expr": "sum by (container) (kube_pod_container_resource_limits{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"cpu\"})", "refId": "C", "legendFormat": "{{container}} limit", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+            { "expr": "sum by (container) (rate(container_cpu_usage_seconds_total{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\"}[5m]))", "refId": "A", "legendFormat": "{{container}} usage", "datasource": { "type": "prometheus", "uid": "${datasource}" } },
+            { "expr": "sum by (container) (kube_pod_container_resource_requests{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"cpu\"})", "refId": "B", "legendFormat": "{{container}} request", "datasource": { "type": "prometheus", "uid": "${datasource}" } },
+            { "expr": "sum by (container) (kube_pod_container_resource_limits{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"cpu\"})", "refId": "C", "legendFormat": "{{container}} limit", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
           ],
           "fieldConfig": { "defaults": { "unit": "cores", "min": 0 } }
         },
@@ -484,11 +484,11 @@
           "id": 602,
           "title": "Memory usage",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 71 },
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
           "targets": [
-            { "expr": "sum by (container) (container_memory_working_set_bytes{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\"})", "refId": "A", "legendFormat": "{{container}} usage", "datasource": { "type": "prometheus", "uid": "prometheus" } },
-            { "expr": "sum by (container) (kube_pod_container_resource_requests{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"memory\"})", "refId": "B", "legendFormat": "{{container}} request", "datasource": { "type": "prometheus", "uid": "prometheus" } },
-            { "expr": "sum by (container) (kube_pod_container_resource_limits{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"memory\"})", "refId": "C", "legendFormat": "{{container}} limit", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+            { "expr": "sum by (container) (container_memory_working_set_bytes{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\"})", "refId": "A", "legendFormat": "{{container}} usage", "datasource": { "type": "prometheus", "uid": "${datasource}" } },
+            { "expr": "sum by (container) (kube_pod_container_resource_requests{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"memory\"})", "refId": "B", "legendFormat": "{{container}} request", "datasource": { "type": "prometheus", "uid": "${datasource}" } },
+            { "expr": "sum by (container) (kube_pod_container_resource_limits{namespace=\"keda\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"memory\"})", "refId": "C", "legendFormat": "{{container}} limit", "datasource": { "type": "prometheus", "uid": "${datasource}" } }
           ],
           "fieldConfig": { "defaults": { "unit": "bytes", "min": 0 } }
         }
@@ -498,12 +498,30 @@
   "refresh": "30s",
   "schemaVersion": 39,
   "tags": ["keda", "operations"],
-  "templating": { "list": [] },
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "Prometheus", "value": "prometheus" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
+  },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "",
   "title": "KEDA Operations",
   "uid": "keda-operations",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }

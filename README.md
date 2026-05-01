@@ -95,6 +95,18 @@ Two dashboards are provisioned from `grafana/dashboards/`:
 | `keda-operations` | KEDA Operations | KEDA control-plane health: pod up state, reconcile errors, reconcile latency, workqueue depth, component CPU/RAM, **adapter ↔ operator gRPC** traffic + latency, **external scaler** activity / latency / errors. |
 | `keda-demo-cpu-scaling` | KEDA Demo - CPU Autoscaling | The cpu-demo workload: replicas (current vs desired vs min/max), per-pod CPU vs request, utilization vs the 50% trigger threshold, pod phases, zone spread, firing-alerts table. |
 
+#### Switching between clusters
+
+Both dashboards expose a `datasource` template variable of type
+`datasource` filtered to `prometheus`. The dropdown at the top of the
+dashboard lists every Prometheus datasource Grafana knows about, so
+viewing a different cluster is one click — no per-panel rewrites.
+
+To wire in another cluster, add an entry to
+`grafana/provisioning/datasources/prometheus.yaml` (the file ships an
+example block) and re-run `make install-grafana`. The new entry will
+appear in the picker on the next reload.
+
 ### Alerts
 
 `prometheus/values.yaml` ships three rule groups:
