@@ -14,6 +14,7 @@ helm upgrade --install keda kedacore/keda \
   --version 2.18.3 \
   --namespace "${KEDA_NAMESPACE}" \
   --create-namespace \
+  -f "${ROOT_DIR}/keda/values.yaml" \
   --wait
 
 wait_for_workloads "${KEDA_NAMESPACE}"

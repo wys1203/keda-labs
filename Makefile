@@ -2,12 +2,14 @@ SHELL := /bin/bash
 
 CLUSTER_NAME ?= keda-lab
 GRAFANA_PORT ?= 3000
+PROMETHEUS_PORT ?= 9090
+ALERTMANAGER_PORT ?= 9093
 LOAD_DURATION ?= 90
 LOAD_REPLICAS ?= 1
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down recreate status verify demo load-test grafana logs \
+.PHONY: help up down recreate status verify demo load-test grafana prometheus alertmanager logs \
 	prereqs create-cluster label-zones install-metrics-server install-prometheus \
 	install-keda install-grafana install-monitoring
 
@@ -21,9 +23,11 @@ help:
 	@printf "  %-22s %s\n" "make demo" "Deploy the CPU demo workload"
 	@printf "  %-22s %s\n" "make load-test" "Run a temporary CPU spike against the demo"
 	@printf "  %-22s %s\n" "make grafana" "Port-forward Grafana to localhost"
+	@printf "  %-22s %s\n" "make prometheus" "Port-forward Prometheus to localhost"
+	@printf "  %-22s %s\n" "make alertmanager" "Port-forward Alertmanager to localhost"
 	@printf "  %-22s %s\n" "make logs" "Show key KEDA and demo logs"
-	@printf "\nVariables: CLUSTER_NAME=%s GRAFANA_PORT=%s LOAD_DURATION=%s LOAD_REPLICAS=%s\n\n" \
-		"$(CLUSTER_NAME)" "$(GRAFANA_PORT)" "$(LOAD_DURATION)" "$(LOAD_REPLICAS)"
+	@printf "\nVariables: CLUSTER_NAME=%s GRAFANA_PORT=%s PROMETHEUS_PORT=%s ALERTMANAGER_PORT=%s LOAD_DURATION=%s LOAD_REPLICAS=%s\n\n" \
+		"$(CLUSTER_NAME)" "$(GRAFANA_PORT)" "$(PROMETHEUS_PORT)" "$(ALERTMANAGER_PORT)" "$(LOAD_DURATION)" "$(LOAD_REPLICAS)"
 
 up:
 	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/up.sh
@@ -49,6 +53,12 @@ load-test:
 
 grafana:
 	@CLUSTER_NAME=$(CLUSTER_NAME) GRAFANA_PORT=$(GRAFANA_PORT) ./scripts/port-forward-grafana.sh
+
+prometheus:
+	@CLUSTER_NAME=$(CLUSTER_NAME) PROMETHEUS_PORT=$(PROMETHEUS_PORT) ./scripts/port-forward-prometheus.sh
+
+alertmanager:
+	@CLUSTER_NAME=$(CLUSTER_NAME) ALERTMANAGER_PORT=$(ALERTMANAGER_PORT) ./scripts/port-forward-alertmanager.sh
 
 logs:
 	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/logs.sh

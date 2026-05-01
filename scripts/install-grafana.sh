@@ -24,7 +24,7 @@ kubectl create configmap grafana-dashboard-providers \
 
 kubectl create configmap grafana-dashboards \
   --namespace "${MONITORING_NAMESPACE}" \
-  --from-file="${ROOT_DIR}/grafana/dashboards/keda-demo-overview.json" \
+  --from-file="${ROOT_DIR}/grafana/dashboards" \
   --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
 log "installing Grafana 11 into namespace ${MONITORING_NAMESPACE}"

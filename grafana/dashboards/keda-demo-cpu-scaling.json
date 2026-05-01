@@ -1,0 +1,254 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "datasource", "uid": "grafana" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    { "title": "KEDA Operations", "type": "dashboards", "tags": ["keda", "operations"], "asDropdown": false, "icon": "external link", "includeVars": false, "keepTime": true, "targetBlank": false }
+  ],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "row",
+      "id": 100,
+      "title": "Replicas",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "type": "stat",
+      "id": 101,
+      "title": "Current replicas",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "max(kube_horizontalpodautoscaler_status_current_replicas{namespace=\"demo-cpu\", horizontalpodautoscaler=\"keda-hpa-cpu-demo\"})", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "blue" } ] }, "min": 0 } },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "stat",
+      "id": 102,
+      "title": "Desired replicas",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "max(kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"demo-cpu\", horizontalpodautoscaler=\"keda-hpa-cpu-demo\"})", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "blue" } ] }, "min": 0 } },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "stat",
+      "id": 103,
+      "title": "Min replicas",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "max(kube_horizontalpodautoscaler_spec_min_replicas{namespace=\"demo-cpu\", horizontalpodautoscaler=\"keda-hpa-cpu-demo\"})", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "blue" } ] }, "min": 0 } },
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "stat",
+      "id": 104,
+      "title": "Max replicas",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "max(kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"demo-cpu\", horizontalpodautoscaler=\"keda-hpa-cpu-demo\"})", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "blue" } ] }, "min": 0 } },
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "stat",
+      "id": 105,
+      "title": "At max for 10m?",
+      "description": "Triggers DemoCpuAtMaxReplicas alert.",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "(max(kube_horizontalpodautoscaler_status_current_replicas{namespace=\"demo-cpu\"}) == bool max(kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"demo-cpu\"})) or vector(0)", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "no", "color": "green" } }, "type": "value" },
+            { "options": { "1": { "text": "yes", "color": "red" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "stat",
+      "id": 106,
+      "title": "Pods Pending",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum(kube_pod_status_phase{namespace=\"demo-cpu\", phase=\"Pending\"}) or vector(0)", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "timeseries",
+      "id": 107,
+      "title": "Replicas over time",
+      "description": "Current vs desired (HPA decision) vs min/max bands.",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "max(kube_horizontalpodautoscaler_status_current_replicas{namespace=\"demo-cpu\", horizontalpodautoscaler=\"keda-hpa-cpu-demo\"})", "refId": "A", "legendFormat": "current", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "expr": "max(kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"demo-cpu\", horizontalpodautoscaler=\"keda-hpa-cpu-demo\"})", "refId": "B", "legendFormat": "desired", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "expr": "max(kube_horizontalpodautoscaler_spec_min_replicas{namespace=\"demo-cpu\", horizontalpodautoscaler=\"keda-hpa-cpu-demo\"})", "refId": "C", "legendFormat": "min", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "expr": "max(kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"demo-cpu\", horizontalpodautoscaler=\"keda-hpa-cpu-demo\"})", "refId": "D", "legendFormat": "max", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "expr": "sum(kube_deployment_status_replicas_ready{namespace=\"demo-cpu\", deployment=\"cpu-demo\"})", "refId": "E", "legendFormat": "ready pods", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 0, "showPoints": "never" },
+          "min": 0
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "min" }, "properties": [ { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "gray" } } ] },
+          { "matcher": { "id": "byName", "options": "max" }, "properties": [ { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "gray" } } ] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "calcs": ["lastNotNull", "max"] } }
+    },
+
+    {
+      "type": "row",
+      "id": 200,
+      "title": "CPU",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }
+    },
+    {
+      "type": "timeseries",
+      "id": 201,
+      "title": "Per-pod CPU usage (cores)",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"demo-cpu\", container=\"cpu-demo\"}[2m]))", "refId": "A", "legendFormat": "{{pod}}", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "expr": "max(kube_pod_container_resource_requests{namespace=\"demo-cpu\", container=\"cpu-demo\", resource=\"cpu\"})", "refId": "B", "legendFormat": "request (per pod)", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "expr": "max(kube_pod_container_resource_limits{namespace=\"demo-cpu\", container=\"cpu-demo\", resource=\"cpu\"})", "refId": "C", "legendFormat": "limit (per pod)", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "cores", "min": 0 },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": "request.*" }, "properties": [ { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [8, 8] } }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } } ] },
+          { "matcher": { "id": "byRegexp", "options": "limit.*" }, "properties": [ { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [8, 8] } }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } } ] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "calcs": ["lastNotNull", "max"] } }
+    },
+    {
+      "type": "timeseries",
+      "id": 202,
+      "title": "CPU utilization vs threshold (50%)",
+      "description": "Mean of per-pod (usage / request) — what the HPA sees. Above the dashed line, KEDA scales up.",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "100 * avg(rate(container_cpu_usage_seconds_total{namespace=\"demo-cpu\", container=\"cpu-demo\"}[2m])) / on() group_left() max(kube_pod_container_resource_requests{namespace=\"demo-cpu\", container=\"cpu-demo\", resource=\"cpu\"})", "refId": "A", "legendFormat": "mean utilization", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "expr": "vector(50)", "refId": "B", "legendFormat": "scale-up threshold", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": 0 },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "scale-up threshold" }, "properties": [ { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } } ] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } }
+    },
+
+    {
+      "type": "row",
+      "id": 300,
+      "title": "Pods & scheduling",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 }
+    },
+    {
+      "type": "timeseries",
+      "id": 301,
+      "title": "Pods by phase",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 25 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum by (phase) (kube_pod_status_phase{namespace=\"demo-cpu\"})", "refId": "A", "legendFormat": "{{phase}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": { "defaults": { "min": 0, "custom": { "stacking": { "mode": "normal" }, "fillOpacity": 30 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } }
+    },
+    {
+      "type": "timeseries",
+      "id": 302,
+      "title": "Pods by zone",
+      "description": "Verifies KEDA-spawned replicas are spreading across the dc1/dc2/dc3 worker zones.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 25 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "count by (zone) (kube_pod_info{namespace=\"demo-cpu\"} * on(node) group_left(zone) (label_replace(kube_node_labels, \"zone\", \"$1\", \"label_topology_kubernetes_io_zone\", \"(.+)\")))", "refId": "A", "legendFormat": "{{zone}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": { "defaults": { "min": 0, "custom": { "stacking": { "mode": "normal" }, "fillOpacity": 30 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } }
+    },
+
+    {
+      "type": "row",
+      "id": 400,
+      "title": "Active alerts",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 33 }
+    },
+    {
+      "type": "table",
+      "id": 401,
+      "title": "Firing alerts (KEDA + demo)",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 34 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "ALERTS{alertstate=\"firing\", component=~\"keda|demo\"}", "refId": "A", "format": "table", "instant": true, "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true, "Value": true, "__name__": true, "alertstate": true, "instance": true, "job": true } } }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "align": "auto" } } },
+      "options": { "showHeader": true }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["keda", "demo", "cpu"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "KEDA Demo - CPU Autoscaling",
+  "uid": "keda-demo-cpu-scaling",
+  "version": 1,
+  "weekStart": ""
+}

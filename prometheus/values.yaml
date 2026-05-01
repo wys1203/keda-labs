@@ -1,0 +1,235 @@
+alertmanager:
+  enabled: true
+  persistence:
+    enabled: false
+  service:
+    type: ClusterIP
+
+server:
+  persistentVolume:
+    enabled: false
+  global:
+    scrape_interval: 30s
+    evaluation_interval: 30s
+
+pushgateway:
+  enabled: false
+
+kube-state-metrics:
+  enabled: true
+  # Expose node labels (topology.kubernetes.io/zone, etc.) so dashboards can
+  # join pods/HPAs to their failure domain.
+  metricLabelsAllowlist:
+    - nodes=[topology.kubernetes.io/zone,kubernetes.io/hostname]
+
+prometheus-node-exporter:
+  enabled: true
+
+# Label conventions used in alert rules and dashboards:
+#
+#   * `app_kubernetes_io_name` is the only KEDA-component label present on
+#     ALL three Service-level scrapes (operator, metrics-apiserver, webhooks).
+#     The plain `app` label is missing on operator and webhooks Services, so
+#     we don't rely on it.
+#
+#   * The `kubernetes-service-endpoints` job is the canonical scrape path for
+#     KEDA pods (the chart annotates each Service). The chart additionally
+#     hardcodes pod-level annotations on the metrics-apiserver, which causes
+#     the `kubernetes-pods` job to scrape it a second time. We deduplicate
+#     by pinning queries to `job="kubernetes-service-endpoints"`.
+#
+#   * KEDA pods carry `honor_labels=true`, so the `namespace` label they
+#     emit on metrics like `keda_resource_registered_total` reflects the
+#     scaled resource's namespace, NOT the operator's namespace. Use
+#     `namespace` directly in alert expressions; do NOT use
+#     `exported_namespace`.
+serverFiles:
+  alerting_rules.yml:
+    groups:
+      - name: keda-control-plane
+        interval: 30s
+        rules:
+          - alert: KedaOperatorDown
+            expr: |
+              absent(up{app_kubernetes_io_name="keda-operator", job="kubernetes-service-endpoints"} == 1)
+            for: 5m
+            labels:
+              severity: critical
+              component: keda
+            annotations:
+              summary: KEDA operator is not being scraped or is down
+              description: |
+                Prometheus has no healthy `up==1` sample for the keda-operator
+                pod for 5m. ScaledObjects will not reconcile.
+
+          - alert: KedaMetricsApiServerDown
+            expr: |
+              absent(up{app_kubernetes_io_name="keda-operator-metrics-apiserver", job="kubernetes-service-endpoints"} == 1)
+            for: 5m
+            labels:
+              severity: critical
+              component: keda
+            annotations:
+              summary: KEDA metrics API server is not being scraped or is down
+              description: |
+                The KEDA metrics adapter (external metrics API) is not reachable.
+                HPAs that depend on KEDA external metrics will stop scaling.
+
+          - alert: KedaAdmissionWebhooksDown
+            expr: |
+              absent(up{app_kubernetes_io_name="keda-admission-webhooks", job="kubernetes-service-endpoints"} == 1)
+            for: 10m
+            labels:
+              severity: warning
+              component: keda
+            annotations:
+              summary: KEDA admission webhook is not being scraped or is down
+              description: |
+                The admission webhook validates ScaledObject/ScaledJob CRs on
+                apply. With it down, mistakes only surface at runtime.
+
+          - alert: KedaReconcileErrors
+            expr: |
+              sum by (controller) (
+                rate(controller_runtime_reconcile_errors_total{
+                  app_kubernetes_io_name="keda-operator",
+                  job="kubernetes-service-endpoints"
+                }[5m])
+              ) > 0
+            for: 10m
+            labels:
+              severity: warning
+              component: keda
+            annotations:
+              summary: KEDA controller {{ $labels.controller }} is reporting reconcile errors
+              description: |
+                controller-runtime is returning errors from Reconcile() for
+                {{ $labels.controller }}. Check `kubectl -n keda logs` on the
+                operator for the underlying cause.
+
+          - alert: KedaWorkqueueBacklog
+            expr: |
+              max by (name) (
+                workqueue_depth{
+                  app_kubernetes_io_name="keda-operator",
+                  job="kubernetes-service-endpoints"
+                }
+              ) > 25
+            for: 10m
+            labels:
+              severity: warning
+              component: keda
+            annotations:
+              summary: KEDA workqueue {{ $labels.name }} depth is sustained high
+              description: |
+                workqueue_depth for {{ $labels.name }} stayed above 25 items
+                for 10m. The operator may be overloaded or wedged on a slow
+                external scaler.
+
+          - alert: KedaAdapterToOperatorGrpcErrors
+            expr: |
+              sum by (grpc_method, grpc_code) (
+                rate(keda_internal_metricsservice_grpc_server_handled_total{
+                  job="kubernetes-service-endpoints",
+                  grpc_code!="OK"
+                }[5m])
+              ) > 0
+            for: 5m
+            labels:
+              severity: warning
+              component: keda
+            annotations:
+              summary: KEDA metrics-apiserver -> operator gRPC is returning {{ $labels.grpc_code }}
+              description: |
+                The adapter -> operator gRPC channel ({{ $labels.grpc_method }})
+                is returning non-OK codes. HPAs that depend on KEDA external
+                metrics will get stale or empty values.
+
+      - name: keda-scalers
+        interval: 30s
+        rules:
+          - alert: KedaScaledObjectErrors
+            expr: |
+              sum by (scaledObject, namespace) (
+                rate(keda_scaled_object_errors_total{job="kubernetes-service-endpoints"}[5m])
+              ) > 0
+            for: 5m
+            labels:
+              severity: warning
+              component: keda
+            annotations:
+              summary: ScaledObject {{ $labels.namespace }}/{{ $labels.scaledObject }} is failing to reconcile
+              description: |
+                keda_scaled_object_errors_total is increasing. Run
+                `kubectl describe scaledobject -n {{ $labels.namespace }} {{ $labels.scaledObject }}`
+                to inspect the status condition.
+
+          - alert: KedaScalerErrors
+            expr: |
+              sum by (scaledObject, scaler, namespace) (
+                rate(keda_scaler_detail_errors_total{job="kubernetes-service-endpoints"}[5m])
+              ) > 0.1
+            for: 10m
+            labels:
+              severity: warning
+              component: keda
+            annotations:
+              summary: KEDA scaler {{ $labels.scaler }} for {{ $labels.scaledObject }} is failing
+              description: |
+                Scaler {{ $labels.scaler }} on
+                {{ $labels.namespace }}/{{ $labels.scaledObject }} is returning
+                errors > 0.1/s sustained 10m. Check the upstream trigger
+                source (queue, prometheus, etc.).
+
+          - alert: KedaScalerMetricsLatencyHigh
+            expr: |
+              max by (scaledObject, scaler, namespace) (
+                keda_scaler_metrics_latency_seconds{job="kubernetes-service-endpoints"}
+              ) > 1
+            for: 10m
+            labels:
+              severity: warning
+              component: keda
+            annotations:
+              summary: KEDA scaler {{ $labels.scaler }} latency is > 1s
+              description: |
+                Time to fetch the trigger metric exceeded 1s sustained 10m.
+                Slow trigger reads delay scaling decisions.
+
+      - name: demo-cpu-workload
+        interval: 30s
+        rules:
+          - alert: DemoCpuAtMaxReplicas
+            expr: |
+              max by (horizontalpodautoscaler, namespace) (
+                kube_horizontalpodautoscaler_status_current_replicas{namespace="demo-cpu"}
+              )
+              ==
+              max by (horizontalpodautoscaler, namespace) (
+                kube_horizontalpodautoscaler_spec_max_replicas{namespace="demo-cpu"}
+              )
+            for: 10m
+            labels:
+              severity: warning
+              component: demo
+            annotations:
+              summary: Demo HPA {{ $labels.horizontalpodautoscaler }} is pinned at max replicas
+              description: |
+                The CPU demo has been at its maxReplicaCount for 10m. Either
+                load is genuinely above capacity, or the trigger threshold
+                is too tight. Bump maxReplicaCount in scaledobject.yaml or
+                tune the CPU trigger value.
+
+          - alert: DemoCpuPodsPending
+            expr: |
+              sum(kube_pod_status_phase{namespace="demo-cpu", phase="Pending"}) > 0
+            for: 5m
+            labels:
+              severity: warning
+              component: demo
+            annotations:
+              summary: Demo workload has pods stuck Pending
+              description: |
+                One or more demo-cpu pods have been Pending for 5m. The kind
+                lab is small — the cluster may be out of CPU. Check
+                `kubectl describe pod` for scheduling events.
