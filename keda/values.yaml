@@ -1,0 +1,32 @@
+# Enabling each `prometheus.*.enabled` flag does three things in the chart:
+#   1. Adds `--enable-prometheus-metrics=true` to the operator and similar
+#      args to the metrics-apiserver / webhooks.
+#   2. Adds a containerPort `metrics:8080` on the relevant pod.
+#   3. Adds `prometheus.io/scrape=true,port=8080,path=/metrics` on the
+#      Service (NOT on the pods).
+#
+# We rely on the chart's Service-level annotations + Prometheus'
+# `kubernetes-service-endpoints` scrape job to pick the targets up. Do NOT
+# also set `podAnnotations` here — that double-scrapes every metric (once
+# via the `kubernetes-pods` job, once via service-endpoints) and inflates
+# series count.
+#
+# Note: the metrics-apiserver/operator/webhooks Prometheus collectors are
+# registered lazily on first call. `keda_scaler_*` and
+# `keda_internal_metricsservice_grpc_*` therefore only appear once a
+# ScaledObject with an *external* trigger (Prometheus, queue, etc.) is
+# active. CPU/Memory triggers bypass the adapter so those metrics stay
+# absent — see manifests/demo-prom for a workload that exercises the path.
+prometheus:
+  metricServer:
+    enabled: true
+    port: 8080
+    portName: metrics
+  operator:
+    enabled: true
+    port: 8080
+    portName: metrics
+  webhooks:
+    enabled: true
+    port: 8080
+    portName: metrics

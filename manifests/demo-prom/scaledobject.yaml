@@ -1,0 +1,32 @@
+# Exercises the adapter -> operator gRPC path. Without an external scaler
+# like this, keda_scaler_* and keda_internal_metricsservice_grpc_* never
+# populate (CPU/Memory triggers bypass the adapter).
+#
+# The trigger reads the cpu-demo workload's aggregate CPU usage via
+# Prometheus. When `make load-test` ramps cpu-demo up, this SO scales
+# in lockstep, so a single load test exercises BOTH trigger paths
+# (HPA-resource for cpu-demo, KEDA-external for prom-demo).
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: prom-demo
+  namespace: demo-prom
+spec:
+  scaleTargetRef:
+    name: prom-demo
+  pollingInterval: 15
+  cooldownPeriod: 30
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local
+        # Reads the cpu-demo HPA's current replica count. When `make load-test`
+        # ramps cpu-demo from 1 to 6, prom-demo follows in lockstep — no rate
+        # lag and no warm-up needed. We scale 1 prom-demo pod per 2 cpu-demo
+        # pods (threshold=2), so prom-demo lands at ceil(6/2)=3 at peak.
+        query: |
+          max(kube_horizontalpodautoscaler_status_current_replicas{namespace="demo-cpu", horizontalpodautoscaler="keda-hpa-cpu-demo"})
+        threshold: "2"
+        activationThreshold: "1.5"
