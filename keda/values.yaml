@@ -6,10 +6,16 @@
 #      Service (NOT on the pods).
 #
 # We rely on the chart's Service-level annotations + Prometheus'
-# `kubernetes-service-endpoints` scrape job to pick the targets up. Do NOT
-# also set `podAnnotations` here — that double-scrapes every metric (once
-# via the `kubernetes-pods` job, once via service-endpoints) and inflates
-# series count.
+# `kubernetes-service-endpoints` scrape job to pick the targets up.
+#
+# The chart additionally hardcodes a pod-level `prometheus.io/scrape="true"`
+# on the metrics-apiserver Deployment whenever `prometheus.metricServer.enabled`
+# is true. That makes the `kubernetes-pods` scrape job ALSO grab it, so every
+# `keda_internal_metricsservice_grpc_client_*` series shows up under TWO jobs
+# and `sum()` counts everything twice. Override the pod annotation back to
+# "false" so only `kubernetes-service-endpoints` scrapes it. (The Service
+# annotation is unaffected.) Operator and webhooks pods don't get the
+# hardcoded annotation, so we leave their `podAnnotations` empty.
 #
 # Note: the metrics-apiserver/operator/webhooks Prometheus collectors are
 # registered lazily on first call. `keda_scaler_*` and
@@ -30,3 +36,7 @@ prometheus:
     enabled: true
     port: 8080
     portName: metrics
+
+podAnnotations:
+  metricsAdapter:
+    prometheus.io/scrape: "false"
