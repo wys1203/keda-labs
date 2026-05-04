@@ -17,10 +17,14 @@ pushgateway:
 
 kube-state-metrics:
   enabled: true
-  # Expose node labels (topology.kubernetes.io/zone, etc.) so dashboards can
-  # join pods/HPAs to their failure domain.
+  # Expose:
+  #   * node labels (topology.kubernetes.io/zone, ...) so dashboards can
+  #     join pods/HPAs to their failure domain.
+  #   * namespace labels (`prodsuite`) so the dashboards can offer a
+  #     "filter by prodsuite" template variable.
   metricLabelsAllowlist:
     - nodes=[topology.kubernetes.io/zone,kubernetes.io/hostname]
+    - namespaces=[prodsuite]
 
 prometheus-node-exporter:
   enabled: true
@@ -31,12 +35,6 @@ prometheus-node-exporter:
 #     ALL three Service-level scrapes (operator, metrics-apiserver, webhooks).
 #     The plain `app` label is missing on operator and webhooks Services, so
 #     we don't rely on it.
-#
-#   * The `kubernetes-service-endpoints` job is the canonical scrape path for
-#     KEDA pods (the chart annotates each Service). The chart additionally
-#     hardcodes pod-level annotations on the metrics-apiserver, which causes
-#     the `kubernetes-pods` job to scrape it a second time. We deduplicate
-#     by pinning queries to `job="kubernetes-service-endpoints"`.
 #
 #   * KEDA pods carry `honor_labels=true`, so the `namespace` label they
 #     emit on metrics like `keda_resource_registered_total` reflects the
@@ -51,7 +49,7 @@ serverFiles:
         rules:
           - alert: KedaOperatorDown
             expr: |
-              absent(up{app_kubernetes_io_name="keda-operator", job="kubernetes-service-endpoints"} == 1)
+              absent(up{app_kubernetes_io_name="keda-operator"} == 1)
             for: 5m
             labels:
               severity: critical
@@ -64,7 +62,7 @@ serverFiles:
 
           - alert: KedaMetricsApiServerDown
             expr: |
-              absent(up{app_kubernetes_io_name="keda-operator-metrics-apiserver", job="kubernetes-service-endpoints"} == 1)
+              absent(up{app_kubernetes_io_name="keda-operator-metrics-apiserver"} == 1)
             for: 5m
             labels:
               severity: critical
@@ -77,7 +75,7 @@ serverFiles:
 
           - alert: KedaAdmissionWebhooksDown
             expr: |
-              absent(up{app_kubernetes_io_name="keda-admission-webhooks", job="kubernetes-service-endpoints"} == 1)
+              absent(up{app_kubernetes_io_name="keda-admission-webhooks"} == 1)
             for: 10m
             labels:
               severity: warning
@@ -91,10 +89,7 @@ serverFiles:
           - alert: KedaReconcileErrors
             expr: |
               sum by (controller) (
-                rate(controller_runtime_reconcile_errors_total{
-                  app_kubernetes_io_name="keda-operator",
-                  job="kubernetes-service-endpoints"
-                }[5m])
+                rate(controller_runtime_reconcile_errors_total{app_kubernetes_io_name="keda-operator"}[5m])
               ) > 0
             for: 10m
             labels:
@@ -110,10 +105,7 @@ serverFiles:
           - alert: KedaWorkqueueBacklog
             expr: |
               max by (name) (
-                workqueue_depth{
-                  app_kubernetes_io_name="keda-operator",
-                  job="kubernetes-service-endpoints"
-                }
+                workqueue_depth{app_kubernetes_io_name="keda-operator"}
               ) > 25
             for: 10m
             labels:
@@ -126,11 +118,23 @@ serverFiles:
                 for 10m. The operator may be overloaded or wedged on a slow
                 external scaler.
 
+          # Adapter -> operator gRPC channel signals two distinct problems:
+          #
+          #  1. The channel is up but returning errors (e.g. operator panics
+          #     mid-RPC, scaler fails fast).
+          #  2. The channel was carrying traffic, then went silent (e.g.
+          #     mTLS cert expired, operator pod terminated mid-scrape, the
+          #     network partitions). The "silence" condition is the more
+          #     dangerous one because non-OK codes at least surface in
+          #     status, while a wedged channel just stops sending.
+          #
+          # Both alerts are designed to NEVER fire when the lab has no
+          # external trigger active — the silence rule's `> 0` precondition
+          # against a 1h-offset window guarantees that.
           - alert: KedaAdapterToOperatorGrpcErrors
             expr: |
               sum by (grpc_method, grpc_code) (
                 rate(keda_internal_metricsservice_grpc_server_handled_total{
-                  job="kubernetes-service-endpoints",
                   grpc_code!="OK"
                 }[5m])
               ) > 0
@@ -145,13 +149,42 @@ serverFiles:
                 is returning non-OK codes. HPAs that depend on KEDA external
                 metrics will get stale or empty values.
 
+          - alert: KedaAdapterToOperatorGrpcSilence
+            # "Had traffic, now silent" — fires only if there was sustained
+            # traffic in the 10-minute window starting 15 minutes ago AND
+            # the most recent 5 minutes have zero. A fresh cluster that has
+            # never seen an external-trigger ScaledObject never trips this.
+            expr: |
+              (
+                sum(rate(keda_internal_metricsservice_grpc_server_handled_total[10m] offset 15m)) > 0.01
+              )
+              and
+              (
+                sum(rate(keda_internal_metricsservice_grpc_server_handled_total[5m])) == 0
+              )
+            for: 5m
+            labels:
+              severity: critical
+              component: keda
+            annotations:
+              summary: KEDA adapter -> operator gRPC went silent after sustained traffic
+              description: |
+                The adapter -> operator gRPC channel was active 15 minutes ago
+                but has been completely silent for 5 minutes. This pattern
+                matches an mTLS cert expiry, a wedged operator goroutine, or
+                a network partition — none of which surface as non-OK codes
+                because the call never lands. Inspect:
+                  kubectl -n keda logs deploy/keda-operator --tail=200
+                  kubectl -n keda logs deploy/keda-operator-metrics-apiserver --tail=200
+                  kubectl -n keda get secret kedaorg-certs -o jsonpath='{.data.tls\.crt}' | base64 -d | openssl x509 -noout -enddate
+
       - name: keda-scalers
         interval: 30s
         rules:
           - alert: KedaScaledObjectErrors
             expr: |
               sum by (scaledObject, namespace) (
-                rate(keda_scaled_object_errors_total{job="kubernetes-service-endpoints"}[5m])
+                rate(keda_scaled_object_errors_total[5m])
               ) > 0
             for: 5m
             labels:
@@ -167,7 +200,7 @@ serverFiles:
           - alert: KedaScalerErrors
             expr: |
               sum by (scaledObject, scaler, namespace) (
-                rate(keda_scaler_detail_errors_total{job="kubernetes-service-endpoints"}[5m])
+                rate(keda_scaler_detail_errors_total[5m])
               ) > 0.1
             for: 10m
             labels:
@@ -184,7 +217,7 @@ serverFiles:
           - alert: KedaScalerMetricsLatencyHigh
             expr: |
               max by (scaledObject, scaler, namespace) (
-                keda_scaler_metrics_latency_seconds{job="kubernetes-service-endpoints"}
+                keda_scaler_metrics_latency_seconds
               ) > 1
             for: 10m
             labels:

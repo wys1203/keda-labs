@@ -66,11 +66,13 @@ You should see one healthy `up==1` target each for `keda-operator`,
 `keda-operator-metrics-apiserver`, and `keda-admission-webhooks` under the
 `kubernetes-service-endpoints` job.
 
-> Why all queries pin `job="kubernetes-service-endpoints"`: the chart
-> additionally hardcodes pod-level `prometheus.io/scrape` annotations on the
-> metrics-apiserver, which causes the `kubernetes-pods` job to scrape it a
-> second time. Pinning the job label deduplicates without disabling the
-> chart's defaults.
+> Dashboard queries do **not** pin the `job` label. The chart hardcodes
+> a pod-level `prometheus.io/scrape="true"` annotation on the metrics-apiserver
+> Deployment whenever `prometheus.metricServer.enabled=true`, which made the
+> `kubernetes-pods` job scrape it on top of the canonical
+> `kubernetes-service-endpoints` scrape and double-counted every gRPC client
+> series. `keda/values.yaml` overrides that pod annotation back to `"false"`
+> so only one job scrapes each component, and queries can stay job-agnostic.
 
 ### Why two demo workloads
 
@@ -95,6 +97,29 @@ Two dashboards are provisioned from `grafana/dashboards/`:
 | `keda-operations` | KEDA Operations | KEDA control-plane health: pod up state, reconcile errors, reconcile latency, workqueue depth, component CPU/RAM, **adapter ↔ operator gRPC** traffic + latency, **external scaler** activity / latency / errors. |
 | `keda-demo-cpu-scaling` | KEDA Demo - CPU Autoscaling | The cpu-demo workload: replicas (current vs desired vs min/max), per-pod CPU vs request, utilization vs the 50% trigger threshold, pod phases, zone spread, firing-alerts table. |
 
+#### Template variables
+
+Both dashboards expose three template variables in the top bar:
+
+| Variable | Type | What it does |
+| --- | --- | --- |
+| `Datasource` | `datasource` | Picks which Prometheus to query — handy when you connect Grafana to multiple clusters. |
+| `Prodsuite` | query | Filters which namespaces appear in the `Namespace` picker. Driven by the namespace label `prodsuite=<value>` exposed via kube-state-metrics. |
+| `Namespace` | query, multi-select | Scopes every panel that filters by `namespace`. Defaults to `All` (every namespace under the chosen prodsuite). |
+
+The lab labels:
+
+| Namespace | `prodsuite` |
+| --- | --- |
+| `keda` | `Platform` |
+| `monitoring` | `Platform` |
+| `demo-cpu` | `Demo` |
+| `demo-prom` | `Demo` |
+
+Add a label to any other namespace (`kubectl label ns foo prodsuite=Bar`) and
+it shows up in the picker on next refresh — kube-state-metrics' allowlist
+already includes the `prodsuite` key (see `prometheus/values.yaml`).
+
 #### Switching between clusters
 
 Both dashboards expose a `datasource` template variable of type
@@ -113,7 +138,14 @@ appear in the picker on the next reload.
 
 - `keda-control-plane` — `KedaOperatorDown`, `KedaMetricsApiServerDown`,
   `KedaAdmissionWebhooksDown`, `KedaReconcileErrors`, `KedaWorkqueueBacklog`,
-  `KedaAdapterToOperatorGrpcErrors`.
+  `KedaAdapterToOperatorGrpcErrors` (non-OK gRPC codes), and
+  `KedaAdapterToOperatorGrpcSilence` — fires only when there was sustained
+  adapter→operator traffic in the 10-minute window starting 15 minutes ago
+  AND the most recent 5 minutes are completely silent. The offset window
+  guarantees a fresh cluster that has never run an external-trigger
+  ScaledObject does NOT fire this alert (no past traffic = precondition
+  fails). It catches the cases that don't surface as RPC errors: mTLS
+  cert expiry, a wedged operator, a network partition.
 - `keda-scalers` — `KedaScaledObjectErrors`, `KedaScalerErrors`,
   `KedaScalerMetricsLatencyHigh` (active only with external triggers).
 - `demo-cpu-workload` — `DemoCpuAtMaxReplicas`, `DemoCpuPodsPending`.

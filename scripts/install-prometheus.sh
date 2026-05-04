@@ -16,6 +16,11 @@ helm upgrade --install "${PROMETHEUS_RELEASE}" prometheus-community/prometheus \
   -f "${ROOT_DIR}/prometheus/values.yaml" \
   --wait
 
+# Label the namespace so dashboards' `prodsuite` variable picks it up
+# (kube-state-metrics exposes the label per metricLabelsAllowlist in
+# the chart values).
+kubectl label namespace "${MONITORING_NAMESPACE}" prodsuite=Platform --overwrite >/dev/null
+
 # The configmap-reload sidecar can race with the new Prometheus pod on
 # helm-upgrade: the new pod sometimes mounts the previous configmap snapshot
 # and never sees an inotify event for the rules change. Force a fresh roll

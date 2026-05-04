@@ -2,3 +2,8 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: demo-cpu
+  labels:
+    # Tier label exposed via kube-state-metrics so dashboards can offer
+    # a `prodsuite` template variable that filters which namespaces
+    # show up in the per-dashboard `namespace` picker.
+    prodsuite: Demo

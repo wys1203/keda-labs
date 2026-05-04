@@ -18,4 +18,10 @@ helm upgrade --install keda kedacore/keda \
   --wait
 
 wait_for_workloads "${KEDA_NAMESPACE}"
+
+# Label the namespace so the dashboards' `prodsuite` template variable
+# picks it up via kube_namespace_labels (KSM exposes the `prodsuite`
+# label per prometheus/values.yaml metricLabelsAllowlist).
+kubectl label namespace "${KEDA_NAMESPACE}" prodsuite=Platform --overwrite >/dev/null
+
 log "KEDA is ready"
