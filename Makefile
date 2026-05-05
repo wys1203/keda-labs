@@ -9,7 +9,7 @@ LOAD_REPLICAS ?= 1
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down recreate status verify demo load-test grafana prometheus alertmanager logs \
+.PHONY: help up down recreate status verify verify-monitoring demo load-test grafana prometheus alertmanager logs \
 	prereqs create-cluster label-zones install-metrics-server install-prometheus \
 	install-keda install-grafana install-monitoring
 
@@ -20,6 +20,7 @@ help:
 	@printf "  %-22s %s\n" "make recreate" "Recreate the cluster from scratch"
 	@printf "  %-22s %s\n" "make status" "Show cluster and workload status"
 	@printf "  %-22s %s\n" "make verify" "Run post-install verification checks"
+	@printf "  %-22s %s\n" "make verify-monitoring" "Run monitoring stack verification checks"
 	@printf "  %-22s %s\n" "make demo" "Deploy the CPU demo workload"
 	@printf "  %-22s %s\n" "make load-test" "Run a temporary CPU spike against the demo"
 	@printf "  %-22s %s\n" "make grafana" "Port-forward Grafana to localhost"
@@ -44,6 +45,9 @@ status:
 
 verify:
 	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/verify.sh
+
+verify-monitoring:
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/verify-monitoring.sh
 
 demo:
 	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/deploy-demo.sh

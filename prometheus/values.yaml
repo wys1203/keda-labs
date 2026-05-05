@@ -12,11 +12,16 @@ server:
     scrape_interval: 30s
     evaluation_interval: 30s
 
-pushgateway:
+prometheus-pushgateway:
   enabled: false
 
 kube-state-metrics:
   enabled: true
+  # Use the locally preloaded Docker Hardened Image inside kind.
+  image:
+    registry: dhi.io
+    repository: kube-state-metrics
+    tag: "2"
   # Expose:
   #   * node labels (topology.kubernetes.io/zone, ...) so dashboards can
   #     join pods/HPAs to their failure domain.
@@ -122,6 +127,43 @@ serverFiles:
                 workqueue_depth for {{ $labels.name }} stayed above 25 items
                 for 10m. The operator may be overloaded or wedged on a slow
                 external scaler.
+
+          # Kernel CFS throttling — fires when a KEDA container is hitting
+          # its CPU limit hard enough that >10% of scheduling periods get
+          # throttled, sustained 10m. Common cause: limit set too low for
+          # the reconcile fan-out at scale; the operator stays UP but
+          # reconciles slow down silently. Metric is from cAdvisor; only
+          # populates for containers that actually have a CPU limit set.
+          - alert: KedaContainerCpuThrottling
+            expr: |
+              100 *
+              sum by (container, pod) (
+                rate(container_cpu_cfs_throttled_periods_total{
+                  namespace="keda",
+                  container=~"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks"
+                }[5m])
+              )
+              /
+              sum by (container, pod) (
+                rate(container_cpu_cfs_periods_total{
+                  namespace="keda",
+                  container=~"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks"
+                }[5m])
+              )
+              > 10
+            for: 10m
+            labels:
+              severity: warning
+              component: keda
+            annotations:
+              summary: KEDA container {{ $labels.container }} is being CPU-throttled (>10%)
+              description: |
+                The CFS scheduler throttled {{ $labels.container }} (pod
+                {{ $labels.pod }}) on more than 10% of its scheduling periods
+                sustained 10m. Either bump the container's CPU limit or scale
+                the deployment. Inspect:
+                  kubectl describe pod -n keda {{ $labels.pod }} | grep -A2 Limits
+                  kubectl top pod -n keda {{ $labels.pod }} --containers
 
           # Adapter -> operator gRPC channel signals two distinct problems:
           #
