@@ -393,7 +393,7 @@
       },
       "targets": [
         {
-          "expr": "sum(keda_resource_registered_total{type=\"scaled_object\", exported_namespace=~\"$namespace\"})",
+          "expr": "sum(keda_resource_registered_total{type=\"scaled_object\", namespace=~\"$namespace\"})",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -442,7 +442,7 @@
       },
       "targets": [
         {
-          "expr": "sum(keda_resource_registered_total{type=\"scaled_job\", exported_namespace=~\"$namespace\"}) or vector(0)",
+          "expr": "sum(keda_resource_registered_total{type=\"scaled_job\", namespace=~\"$namespace\"}) or vector(0)",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -491,7 +491,7 @@
       },
       "targets": [
         {
-          "expr": "sum(keda_resource_registered_total{type=~\".*trigger_authentication.*\", exported_namespace=~\"$namespace\"}) or vector(0)",
+          "expr": "sum(keda_resource_registered_total{type=~\".*trigger_authentication.*\", namespace=~\"$namespace\"}) or vector(0)",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -541,7 +541,7 @@
       },
       "targets": [
         {
-          "expr": "sum(keda_scaled_object_paused{exported_namespace=~\"$namespace\"}) or vector(0)",
+          "expr": "sum(keda_scaled_object_paused{namespace=~\"$namespace\"}) or vector(0)",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -635,7 +635,7 @@
       },
       "targets": [
         {
-          "expr": "sum by(type) (keda_resource_registered_total{exported_namespace=~\"$namespace\"})",
+          "expr": "sum by(type) (keda_resource_registered_total{namespace=~\"$namespace\"})",
           "refId": "A",
           "legendFormat": "{{type}}",
           "datasource": {
@@ -698,9 +698,9 @@
       },
       "targets": [
         {
-          "expr": "sum by (scaledObject, exported_namespace) (rate(keda_scaled_object_errors_total{exported_namespace=~\"$namespace\"}[$__rate_interval]))",
+          "expr": "sum by (scaledObject, namespace) (rate(keda_scaled_object_errors_total{namespace=~\"$namespace\"}[$__rate_interval]))",
           "refId": "A",
-          "legendFormat": "{{exported_namespace}}/{{scaledObject}}",
+          "legendFormat": "{{namespace}}/{{scaledObject}}",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -1123,9 +1123,9 @@
       },
       "targets": [
         {
-          "expr": "max by (exported_namespace, scaledObject, scaler) (keda_scaler_active{exported_namespace=~\"$namespace\"})",
+          "expr": "max by (namespace, scaledObject, scaler) (keda_scaler_active{namespace=~\"$namespace\"})",
           "refId": "A",
-          "legendFormat": "{{exported_namespace}}/{{scaledObject}} {{scaler}}",
+          "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -1163,9 +1163,9 @@
       },
       "targets": [
         {
-          "expr": "max by (exported_namespace, scaledObject, scaler, metric) (keda_scaler_metrics_value{exported_namespace=~\"$namespace\"})",
+          "expr": "max by (namespace, scaledObject, scaler, metric) (keda_scaler_metrics_value{namespace=~\"$namespace\"})",
           "refId": "A",
-          "legendFormat": "{{exported_namespace}}/{{scaledObject}} {{scaler}} ({{metric}})",
+          "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}} ({{metric}})",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -1202,9 +1202,9 @@
       },
       "targets": [
         {
-          "expr": "max by (exported_namespace, scaledObject, scaler) (keda_scaler_metrics_latency_seconds{exported_namespace=~\"$namespace\"})",
+          "expr": "max by (namespace, scaledObject, scaler) (keda_scaler_metrics_latency_seconds{namespace=~\"$namespace\"})",
           "refId": "A",
-          "legendFormat": "{{exported_namespace}}/{{scaledObject}} {{scaler}}",
+          "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -1242,9 +1242,9 @@
       },
       "targets": [
         {
-          "expr": "sum by (exported_namespace, scaledObject, scaler) (rate(keda_scaler_detail_errors_total{exported_namespace=~\"$namespace\"}[$__rate_interval]))",
+          "expr": "sum by (namespace, scaledObject, scaler) (rate(keda_scaler_detail_errors_total{namespace=~\"$namespace\"}[$__rate_interval]))",
           "refId": "A",
-          "legendFormat": "{{exported_namespace}}/{{scaledObject}} {{scaler}}",
+          "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -2436,6 +2436,6 @@
   "timezone": "",
   "title": "KEDA Operations",
   "uid": "keda-operations",
-  "version": 5,
+  "version": 6,
   "weekStart": ""
 }

@@ -4,7 +4,16 @@ set -euo pipefail
 source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
 ensure_cluster
+require_cmd base64
 require_cmd python3
+
+grafana_auth_header="$(printf "%s:%s" "${GRAFANA_ADMIN_USER:-admin}" "${GRAFANA_ADMIN_PASSWORD:-admin}" | base64 | tr -d '\n')"
+
+grafana_api() {
+  local path="$1"
+  kubectl -n "${MONITORING_NAMESPACE}" exec deploy/"${GRAFANA_RELEASE}" -- \
+    wget -q -O - --header="Authorization: Basic ${grafana_auth_header}" "http://localhost:3000${path}" 2>/dev/null
+}
 
 prometheus_active_targets() {
   kubectl -n "${MONITORING_NAMESPACE}" exec deploy/prometheus-server -c prometheus-server -- \
@@ -31,6 +40,17 @@ print(len(targets))' "${service}" "${expected}")" || fail "${label}: ${result//$
   log "  ${label}: ${result}"
 }
 
+expect_grafana_dashboard() {
+  local uid="$1"
+  local title
+
+  title="$(grafana_api "/api/dashboards/uid/${uid}" | python3 -c 'import json,sys
+d=json.load(sys.stdin)
+print(d["dashboard"]["title"])')" || fail "Grafana dashboard ${uid} is not provisioned"
+  [[ -n "${title}" ]] || fail "Grafana dashboard ${uid} has no title"
+  log "  Grafana dashboard ${uid}: ${title}"
+}
+
 log "verifying monitoring rollouts"
 kubectl rollout status -n kube-system deployment/metrics-server --timeout=180s
 kubectl_wait_rollout "${MONITORING_NAMESPACE}" deployment/prometheus-server
@@ -49,6 +69,15 @@ log "verifying monitoring services"
 kubectl get --raw "/api/v1/namespaces/${MONITORING_NAMESPACE}/services/http:prometheus-server:80/proxy/-/ready" >/dev/null
 kubectl get --raw "/api/v1/namespaces/${MONITORING_NAMESPACE}/services/http:prometheus-alertmanager:9093/proxy/-/ready" >/dev/null
 kubectl get --raw "/api/v1/namespaces/${MONITORING_NAMESPACE}/services/http:${GRAFANA_RELEASE}:80/proxy/api/health" >/dev/null
+
+log "verifying Grafana provisioning"
+grafana_status="$(grafana_api "/api/datasources/uid/prometheus/health" | python3 -c 'import json,sys
+print(json.load(sys.stdin)["status"])')" || fail "Grafana Prometheus datasource health check failed"
+[[ "${grafana_status}" == "OK" ]] || fail "Grafana Prometheus datasource status is ${grafana_status}"
+log "  Grafana Prometheus datasource: ${grafana_status}"
+expect_grafana_dashboard "monitoring-stack"
+expect_grafana_dashboard "keda-operations"
+expect_grafana_dashboard "keda-demo-cpu-scaling"
 
 log "verifying Prometheus scrapes"
 expect_active_targets_up "kube-state-metrics active targets up" "prometheus-kube-state-metrics" "2"

@@ -43,14 +43,16 @@ prometheus-node-exporter:
 #
 #   * KEDA emits its workload metrics (`keda_resource_registered_total`,
 #     `keda_scaled_object_*`, `keda_scaler_*`) with a `namespace` label
-#     set to the ScaledObject's namespace. The prometheus-community
-#     chart's `kubernetes-service-endpoints` scrape job rewrites the
-#     target-side `namespace` label to the scrape-source pod's
-#     namespace (always `keda` for these metrics) and the metric's
-#     original value survives only as `exported_namespace`. KEDA
-#     workload alerts and dashboards therefore filter, group, and
-#     interpolate `exported_namespace`; the plain `namespace` label is
-#     always `keda` and useless for scoping.
+#     set to the ScaledObject's namespace. The chart's
+#     `kubernetes-service-endpoints` scrape job is configured with
+#     `honor_labels: true`, so when the metric's own `namespace` label
+#     collides with the relabel-injected target-pod namespace, the
+#     metric's value wins. We therefore filter / group by the plain
+#     `namespace` label everywhere — it correctly resolves to the
+#     ScaledObject's namespace, NOT the operator's pod namespace.
+#     (PR #4 originally claimed `exported_namespace` was the right
+#     label, but that was based on a wrong assumption about scrape
+#     behavior; honor_labels makes `namespace` the right answer.)
 serverFiles:
   alerting_rules.yml:
     groups:
@@ -230,7 +232,7 @@ serverFiles:
         rules:
           - alert: KedaScaledObjectErrors
             expr: |
-              sum by (scaledObject, exported_namespace) (
+              sum by (scaledObject, namespace) (
                 rate(keda_scaled_object_errors_total[5m])
               ) > 0
             for: 5m
@@ -238,15 +240,15 @@ serverFiles:
               severity: warning
               component: keda
             annotations:
-              summary: ScaledObject {{ $labels.exported_namespace }}/{{ $labels.scaledObject }} is failing to reconcile
+              summary: ScaledObject {{ $labels.namespace }}/{{ $labels.scaledObject }} is failing to reconcile
               description: |
                 keda_scaled_object_errors_total is increasing. Run
-                `kubectl describe scaledobject -n {{ $labels.exported_namespace }} {{ $labels.scaledObject }}`
+                `kubectl describe scaledobject -n {{ $labels.namespace }} {{ $labels.scaledObject }}`
                 to inspect the status condition.
 
           - alert: KedaScalerErrors
             expr: |
-              sum by (scaledObject, scaler, exported_namespace) (
+              sum by (scaledObject, scaler, namespace) (
                 rate(keda_scaler_detail_errors_total[5m])
               ) > 0.1
             for: 10m
@@ -257,13 +259,13 @@ serverFiles:
               summary: KEDA scaler {{ $labels.scaler }} for {{ $labels.scaledObject }} is failing
               description: |
                 Scaler {{ $labels.scaler }} on
-                {{ $labels.exported_namespace }}/{{ $labels.scaledObject }} is returning
+                {{ $labels.namespace }}/{{ $labels.scaledObject }} is returning
                 errors > 0.1/s sustained 10m. Check the upstream trigger
                 source (queue, prometheus, etc.).
 
           - alert: KedaScalerMetricsLatencyHigh
             expr: |
-              max by (scaledObject, scaler, exported_namespace) (
+              max by (scaledObject, scaler, namespace) (
                 keda_scaler_metrics_latency_seconds
               ) > 1
             for: 10m
