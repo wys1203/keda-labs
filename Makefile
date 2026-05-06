@@ -10,8 +10,8 @@ LOAD_REPLICAS ?= 1
 .DEFAULT_GOAL := help
 
 .PHONY: help up down recreate status verify verify-monitoring demo load-test grafana prometheus alertmanager logs \
-	prereqs create-cluster label-zones install-metrics-server install-prometheus \
-	install-keda install-grafana install-monitoring
+	prereqs create-cluster label-zones prepull-images install-metrics-server install-prometheus \
+	install-cert-manager install-keda install-grafana install-monitoring
 
 help:
 	@printf "\nKEDA kind lab shortcuts\n\n"
@@ -76,11 +76,17 @@ create-cluster:
 label-zones:
 	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/label-zones.sh
 
+prepull-images:
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/prepull-images.sh
+
 install-metrics-server:
 	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/install-metrics-server.sh
 
 install-prometheus:
 	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/install-prometheus.sh
+
+install-cert-manager:
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/install-cert-manager.sh
 
 install-keda:
 	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/install-keda.sh

@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpu-legacy
+  namespace: legacy-cpu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cpu-legacy
+  template:
+    metadata:
+      labels:
+        app: cpu-legacy
+    spec:
+      containers:
+        - name: cpu-legacy
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - while true; do sleep 30; done
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi

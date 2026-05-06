@@ -4,7 +4,8 @@ Reusable kind lab for KEDA experiments on Kubernetes `1.24.17` with:
 
 - `1` control-plane and `3` worker nodes
 - zone labels: `topology.kubernetes.io/zone=dc1|dc2|dc3`
-- KEDA `2.18.3` with operator + metrics-apiserver + admission-webhooks Prometheus endpoints enabled
+- cert-manager `v1.16.2` issues KEDA's webhook / metrics-apiserver TLS certs from a self-signed CA (replaces KEDA's built-in in-operator generator)
+- KEDA `2.16.1` with operator + metrics-apiserver + admission-webhooks Prometheus endpoints enabled
 - Prometheus + Alertmanager + kube-state-metrics + node-exporter
 - Grafana `11` provisioned with dashboards for the monitoring stack, KEDA control-plane health, and demo CPU autoscaling
 - KEDA-specific alert rules (component down, reconcile errors, adapter↔operator gRPC errors, scaler errors, demo HPA pinned at max, demo pods Pending)
@@ -59,7 +60,7 @@ Verify:
 
 ```bash
 kubectl -n monitoring exec deploy/prometheus-server -c prometheus-server -- \
-  wget -q -O - 'http://localhost:9090/api/v1/query?query=up{namespace="keda"}'
+  wget -q -O - 'http://localhost:9090/api/v1/query?query=up{namespace="platform-keda"}'
 ```
 
 You should see one healthy `up==1` target each for `keda-operator`,
@@ -112,10 +113,11 @@ The lab labels:
 
 | Namespace | `prodsuite` |
 | --- | --- |
-| `keda` | `Platform` |
+| `platform-keda` | `Platform` |
 | `monitoring` | `Platform` |
 | `demo-cpu` | `Demo` |
 | `demo-prom` | `Demo` |
+| `legacy-cpu` | `legacy` |
 
 Add a label to any other namespace (`kubectl label ns foo prodsuite=Bar`) and
 it shows up in the picker on next refresh — kube-state-metrics' allowlist
@@ -167,12 +169,24 @@ After ~10 minutes at max replicas, `DemoCpuAtMaxReplicas` transitions
 ## Notes
 
 - `make up` installs metrics-server, Prometheus, Alertmanager, kube-state-metrics,
-  node-exporter, Grafana, and KEDA, then deploys the CPU demo workload.
+  node-exporter, Grafana, cert-manager, and KEDA, then deploys the CPU demo
+  workload. cert-manager is installed by `scripts/install-keda.sh` because
+  KEDA's chart (`keda/values.yaml`) routes its TLS through cert-manager.
+- `make prepull-images` (also run automatically by `make up` after
+  `create-cluster`) renders every chart with the same values the installer
+  uses, dedupes the resulting `image:` references, `docker pull`s each one
+  in parallel, and `kind load`s them into the cluster. This prevents
+  `ImagePullBackOff` and shaves first-run install time. Local-only
+  `dhi.io/...` images are skipped — they're loaded by their own install
+  scripts via `load_docker_image_to_kind`.
 - `make load-test` temporarily patches the demo container into a busy loop so
   KEDA can scale it up; it restores the idle command on exit.
 - The `monitoring` namespace hosts Prometheus, Alertmanager, Grafana, and the
-  metrics exporters. The `keda` namespace hosts KEDA itself. The `demo-cpu`
-  and `demo-prom` namespaces host the two demo workloads.
+  metrics exporters. The `platform-keda` namespace hosts KEDA itself. The `demo-cpu`
+  and `demo-prom` namespaces host the two demo workloads. The `legacy-cpu`
+  namespace (`prodsuite=legacy`) hosts a workload using the **deprecated**
+  CPU-trigger form (`metadata.type: Utilization`) — it's the known offender
+  the `keda-deprecation-webhook` spec is designed to inventory and block.
 - Helm values live next to the install scripts: `keda/values.yaml`,
   `prometheus/values.yaml`, `grafana/values.yaml`. Edit those, then re-run the
   matching `make install-*` target — no full cluster recreate needed.

@@ -1435,7 +1435,7 @@
           },
           "targets": [
             {
-              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"keda\", container=\"keda-operator\"}[5m]))",
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"platform-keda\", container=\"keda-operator\"}[5m]))",
               "refId": "A",
               "legendFormat": "usage",
               "datasource": {
@@ -1444,7 +1444,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests{namespace=\"keda\", container=\"keda-operator\", resource=\"cpu\"})",
+              "expr": "sum(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-operator\", resource=\"cpu\"})",
               "refId": "B",
               "legendFormat": "request",
               "datasource": {
@@ -1453,7 +1453,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_limits{namespace=\"keda\", container=\"keda-operator\", resource=\"cpu\"})",
+              "expr": "sum(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-operator\", resource=\"cpu\"})",
               "refId": "C",
               "legendFormat": "limit",
               "datasource": {
@@ -1548,7 +1548,7 @@
           },
           "targets": [
             {
-              "expr": "sum(container_memory_working_set_bytes{namespace=\"keda\", container=\"keda-operator\"})",
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"platform-keda\", container=\"keda-operator\"})",
               "refId": "A",
               "legendFormat": "usage",
               "datasource": {
@@ -1557,7 +1557,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests{namespace=\"keda\", container=\"keda-operator\", resource=\"memory\"})",
+              "expr": "sum(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-operator\", resource=\"memory\"})",
               "refId": "B",
               "legendFormat": "request",
               "datasource": {
@@ -1566,7 +1566,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_limits{namespace=\"keda\", container=\"keda-operator\", resource=\"memory\"})",
+              "expr": "sum(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-operator\", resource=\"memory\"})",
               "refId": "C",
               "legendFormat": "limit",
               "datasource": {
@@ -1662,7 +1662,7 @@
           },
           "targets": [
             {
-              "expr": "100 * sum(rate(container_cpu_cfs_throttled_periods_total{namespace=\"keda\", container=\"keda-operator\"}[5m])) / sum(rate(container_cpu_cfs_periods_total{namespace=\"keda\", container=\"keda-operator\"}[5m]))",
+              "expr": "100 * sum(rate(container_cpu_cfs_throttled_periods_total{namespace=\"platform-keda\", container=\"keda-operator\"}[5m])) / sum(rate(container_cpu_cfs_periods_total{namespace=\"platform-keda\", container=\"keda-operator\"}[5m]))",
               "refId": "A",
               "legendFormat": "throttled %",
               "datasource": {
@@ -1742,7 +1742,7 @@
           },
           "targets": [
             {
-              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\"}[5m]))",
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\"}[5m]))",
               "refId": "A",
               "legendFormat": "usage",
               "datasource": {
@@ -1751,7 +1751,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\", resource=\"cpu\"})",
+              "expr": "sum(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\", resource=\"cpu\"})",
               "refId": "B",
               "legendFormat": "request",
               "datasource": {
@@ -1760,7 +1760,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_limits{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\", resource=\"cpu\"})",
+              "expr": "sum(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\", resource=\"cpu\"})",
               "refId": "C",
               "legendFormat": "limit",
               "datasource": {
@@ -1855,7 +1855,7 @@
           },
           "targets": [
             {
-              "expr": "sum(container_memory_working_set_bytes{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\"})",
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\"})",
               "refId": "A",
               "legendFormat": "usage",
               "datasource": {
@@ -1864,7 +1864,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\", resource=\"memory\"})",
+              "expr": "sum(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\", resource=\"memory\"})",
               "refId": "B",
               "legendFormat": "request",
               "datasource": {
@@ -1873,7 +1873,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_limits{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\", resource=\"memory\"})",
+              "expr": "sum(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\", resource=\"memory\"})",
               "refId": "C",
               "legendFormat": "limit",
               "datasource": {
@@ -1969,7 +1969,7 @@
           },
           "targets": [
             {
-              "expr": "100 * sum(rate(container_cpu_cfs_throttled_periods_total{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\"}[5m])) / sum(rate(container_cpu_cfs_periods_total{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\"}[5m]))",
+              "expr": "100 * sum(rate(container_cpu_cfs_throttled_periods_total{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\"}[5m])) / sum(rate(container_cpu_cfs_periods_total{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\"}[5m]))",
               "refId": "A",
               "legendFormat": "throttled %",
               "datasource": {
@@ -2049,7 +2049,7 @@
           },
           "targets": [
             {
-              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"keda\", container=\"keda-admission-webhooks\"}[5m]))",
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"platform-keda\", container=\"keda-admission-webhooks\"}[5m]))",
               "refId": "A",
               "legendFormat": "usage",
               "datasource": {
@@ -2058,7 +2058,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests{namespace=\"keda\", container=\"keda-admission-webhooks\", resource=\"cpu\"})",
+              "expr": "sum(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-admission-webhooks\", resource=\"cpu\"})",
               "refId": "B",
               "legendFormat": "request",
               "datasource": {
@@ -2067,7 +2067,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_limits{namespace=\"keda\", container=\"keda-admission-webhooks\", resource=\"cpu\"})",
+              "expr": "sum(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-admission-webhooks\", resource=\"cpu\"})",
               "refId": "C",
               "legendFormat": "limit",
               "datasource": {
@@ -2162,7 +2162,7 @@
           },
           "targets": [
             {
-              "expr": "sum(container_memory_working_set_bytes{namespace=\"keda\", container=\"keda-admission-webhooks\"})",
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"platform-keda\", container=\"keda-admission-webhooks\"})",
               "refId": "A",
               "legendFormat": "usage",
               "datasource": {
@@ -2171,7 +2171,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests{namespace=\"keda\", container=\"keda-admission-webhooks\", resource=\"memory\"})",
+              "expr": "sum(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-admission-webhooks\", resource=\"memory\"})",
               "refId": "B",
               "legendFormat": "request",
               "datasource": {
@@ -2180,7 +2180,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_limits{namespace=\"keda\", container=\"keda-admission-webhooks\", resource=\"memory\"})",
+              "expr": "sum(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-admission-webhooks\", resource=\"memory\"})",
               "refId": "C",
               "legendFormat": "limit",
               "datasource": {
@@ -2276,7 +2276,7 @@
           },
           "targets": [
             {
-              "expr": "100 * sum(rate(container_cpu_cfs_throttled_periods_total{namespace=\"keda\", container=\"keda-admission-webhooks\"}[5m])) / sum(rate(container_cpu_cfs_periods_total{namespace=\"keda\", container=\"keda-admission-webhooks\"}[5m]))",
+              "expr": "100 * sum(rate(container_cpu_cfs_throttled_periods_total{namespace=\"platform-keda\", container=\"keda-admission-webhooks\"}[5m])) / sum(rate(container_cpu_cfs_periods_total{namespace=\"platform-keda\", container=\"keda-admission-webhooks\"}[5m]))",
               "refId": "A",
               "legendFormat": "throttled %",
               "datasource": {

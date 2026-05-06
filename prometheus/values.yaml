@@ -111,7 +111,7 @@ serverFiles:
               summary: KEDA controller {{ $labels.controller }} is reporting reconcile errors
               description: |
                 controller-runtime is returning errors from Reconcile() for
-                {{ $labels.controller }}. Check `kubectl -n keda logs` on the
+                {{ $labels.controller }}. Check `kubectl -n platform-keda logs` on the
                 operator for the underlying cause.
 
           - alert: KedaWorkqueueBacklog
@@ -141,14 +141,14 @@ serverFiles:
               100 *
               sum by (container, pod) (
                 rate(container_cpu_cfs_throttled_periods_total{
-                  namespace="keda",
+                  namespace="platform-keda",
                   container=~"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks"
                 }[5m])
               )
               /
               sum by (container, pod) (
                 rate(container_cpu_cfs_periods_total{
-                  namespace="keda",
+                  namespace="platform-keda",
                   container=~"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks"
                 }[5m])
               )
@@ -164,8 +164,8 @@ serverFiles:
                 {{ $labels.pod }}) on more than 10% of its scheduling periods
                 sustained 10m. Either bump the container's CPU limit or scale
                 the deployment. Inspect:
-                  kubectl describe pod -n keda {{ $labels.pod }} | grep -A2 Limits
-                  kubectl top pod -n keda {{ $labels.pod }} --containers
+                  kubectl describe pod -n platform-keda {{ $labels.pod }} | grep -A2 Limits
+                  kubectl top pod -n platform-keda {{ $labels.pod }} --containers
 
           # Adapter -> operator gRPC channel signals two distinct problems:
           #
@@ -223,9 +223,9 @@ serverFiles:
                 matches an mTLS cert expiry, a wedged operator goroutine, or
                 a network partition — none of which surface as non-OK codes
                 because the call never lands. Inspect:
-                  kubectl -n keda logs deploy/keda-operator --tail=200
-                  kubectl -n keda logs deploy/keda-operator-metrics-apiserver --tail=200
-                  kubectl -n keda get secret kedaorg-certs -o jsonpath='{.data.tls\.crt}' | base64 -d | openssl x509 -noout -enddate
+                  kubectl -n platform-keda logs deploy/keda-operator --tail=200
+                  kubectl -n platform-keda logs deploy/keda-operator-metrics-apiserver --tail=200
+                  kubectl -n platform-keda get secret kedaorg-certs -o jsonpath='{.data.tls\.crt}' | base64 -d | openssl x509 -noout -enddate
 
       - name: keda-scalers
         interval: 30s

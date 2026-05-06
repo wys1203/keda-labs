@@ -1,17 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "${SCRIPT_DIR}/lib.sh"
 
 ensure_cluster
 require_cmd helm
 
+# KEDA's TLS certs are issued by cert-manager (see keda/values.yaml), so the
+# cert-manager controller and CRDs must be present before the helm install
+# renders KEDA's Issuer/Certificate resources.
+"${SCRIPT_DIR}/install-cert-manager.sh"
+
 helm repo add kedacore https://kedacore.github.io/charts >/dev/null 2>&1 || true
 helm repo update >/dev/null
 
-log "installing KEDA 2.18.3 into namespace ${KEDA_NAMESPACE}"
+log "installing KEDA 2.16.1 into namespace ${KEDA_NAMESPACE}"
 helm upgrade --install keda kedacore/keda \
-  --version 2.18.3 \
+  --version 2.16.1 \
   --namespace "${KEDA_NAMESPACE}" \
   --create-namespace \
   -f "${ROOT_DIR}/keda/values.yaml" \

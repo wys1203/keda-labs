@@ -20,3 +20,9 @@ for i in "${!workers[@]}"; do
 done
 
 log "worker node zone labels applied"
+
+routable_node="${workers[0]}"
+log "labeling ${routable_node} with node-routable=true"
+kubectl label node "${routable_node}" node-routable=true --overwrite
+log "tainting ${routable_node} with node-routable=true:NoSchedule"
+kubectl taint node "${routable_node}" node-routable=true:NoSchedule --overwrite

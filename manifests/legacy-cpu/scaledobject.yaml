@@ -1,0 +1,24 @@
+# Deliberately uses the DEPRECATED CPU-trigger form: `metadata.type: Utilization`
+# instead of the trigger-level `metricType: Utilization` field. KEDA 2.10
+# deprecated this in favor of `metricType`, and 2.18 removes support entirely
+# (validation rejects the resource on apply). This lab pins KEDA 2.16.1, where
+# the deprecated form still works (with a warning) — exactly the kind of
+# pre-existing offender the keda-deprecation-webhook (see docs/superpowers/specs)
+# is designed to inventory and block.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: cpu-legacy
+  namespace: legacy-cpu
+spec:
+  scaleTargetRef:
+    name: cpu-legacy
+  pollingInterval: 15
+  cooldownPeriod: 30
+  minReplicaCount: 1
+  maxReplicaCount: 6
+  triggers:
+    - type: cpu
+      metadata:
+        type: Utilization
+        value: "50"
