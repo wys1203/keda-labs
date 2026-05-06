@@ -14,4 +14,5 @@ fi
 log "creating kind cluster '${CLUSTER_NAME}'"
 kind create cluster --name "${CLUSTER_NAME}" --config "${ROOT_DIR}/kind/cluster.yaml"
 kubectl cluster-info >/dev/null
+wait_for_nodes_ready
 log "kind cluster '${CLUSTER_NAME}' is ready"

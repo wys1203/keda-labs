@@ -6,6 +6,14 @@ source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 ensure_cluster
 require_cmd helm
 
+KUBE_STATE_METRICS_IMAGE="${KUBE_STATE_METRICS_IMAGE:-dhi.io/kube-state-metrics:2}"
+KUBE_STATE_METRICS_LOAD_IMAGE="${KUBE_STATE_METRICS_LOAD_IMAGE:-true}"
+KUBE_STATE_METRICS_LOAD_PLATFORM="${KUBE_STATE_METRICS_LOAD_PLATFORM:-}"
+
+if [[ "${KUBE_STATE_METRICS_LOAD_IMAGE}" == "true" ]]; then
+  load_docker_image_to_kind "${KUBE_STATE_METRICS_IMAGE}" "${KUBE_STATE_METRICS_LOAD_PLATFORM}"
+fi
+
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts >/dev/null 2>&1 || true
 helm repo update >/dev/null
 

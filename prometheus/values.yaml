@@ -12,11 +12,16 @@ server:
     scrape_interval: 30s
     evaluation_interval: 30s
 
-pushgateway:
+prometheus-pushgateway:
   enabled: false
 
 kube-state-metrics:
   enabled: true
+  # Use the locally preloaded Docker Hardened Image inside kind.
+  image:
+    registry: dhi.io
+    repository: kube-state-metrics
+    tag: "2"
   # Expose:
   #   * node labels (topology.kubernetes.io/zone, ...) so dashboards can
   #     join pods/HPAs to their failure domain.
@@ -38,14 +43,16 @@ prometheus-node-exporter:
 #
 #   * KEDA emits its workload metrics (`keda_resource_registered_total`,
 #     `keda_scaled_object_*`, `keda_scaler_*`) with a `namespace` label
-#     set to the ScaledObject's namespace. The prometheus-community
-#     chart's `kubernetes-service-endpoints` scrape job rewrites the
-#     target-side `namespace` label to the scrape-source pod's
-#     namespace (always `keda` for these metrics) and the metric's
-#     original value survives only as `exported_namespace`. KEDA
-#     workload alerts and dashboards therefore filter, group, and
-#     interpolate `exported_namespace`; the plain `namespace` label is
-#     always `keda` and useless for scoping.
+#     set to the ScaledObject's namespace. The chart's
+#     `kubernetes-service-endpoints` scrape job is configured with
+#     `honor_labels: true`, so when the metric's own `namespace` label
+#     collides with the relabel-injected target-pod namespace, the
+#     metric's value wins. We therefore filter / group by the plain
+#     `namespace` label everywhere — it correctly resolves to the
+#     ScaledObject's namespace, NOT the operator's pod namespace.
+#     (PR #4 originally claimed `exported_namespace` was the right
+#     label, but that was based on a wrong assumption about scrape
+#     behavior; honor_labels makes `namespace` the right answer.)
 serverFiles:
   alerting_rules.yml:
     groups:
@@ -123,6 +130,43 @@ serverFiles:
                 for 10m. The operator may be overloaded or wedged on a slow
                 external scaler.
 
+          # Kernel CFS throttling — fires when a KEDA container is hitting
+          # its CPU limit hard enough that >10% of scheduling periods get
+          # throttled, sustained 10m. Common cause: limit set too low for
+          # the reconcile fan-out at scale; the operator stays UP but
+          # reconciles slow down silently. Metric is from cAdvisor; only
+          # populates for containers that actually have a CPU limit set.
+          - alert: KedaContainerCpuThrottling
+            expr: |
+              100 *
+              sum by (container, pod) (
+                rate(container_cpu_cfs_throttled_periods_total{
+                  namespace="keda",
+                  container=~"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks"
+                }[5m])
+              )
+              /
+              sum by (container, pod) (
+                rate(container_cpu_cfs_periods_total{
+                  namespace="keda",
+                  container=~"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks"
+                }[5m])
+              )
+              > 10
+            for: 10m
+            labels:
+              severity: warning
+              component: keda
+            annotations:
+              summary: KEDA container {{ $labels.container }} is being CPU-throttled (>10%)
+              description: |
+                The CFS scheduler throttled {{ $labels.container }} (pod
+                {{ $labels.pod }}) on more than 10% of its scheduling periods
+                sustained 10m. Either bump the container's CPU limit or scale
+                the deployment. Inspect:
+                  kubectl describe pod -n keda {{ $labels.pod }} | grep -A2 Limits
+                  kubectl top pod -n keda {{ $labels.pod }} --containers
+
           # Adapter -> operator gRPC channel signals two distinct problems:
           #
           #  1. The channel is up but returning errors (e.g. operator panics
@@ -188,7 +232,7 @@ serverFiles:
         rules:
           - alert: KedaScaledObjectErrors
             expr: |
-              sum by (scaledObject, exported_namespace) (
+              sum by (scaledObject, namespace) (
                 rate(keda_scaled_object_errors_total[5m])
               ) > 0
             for: 5m
@@ -196,15 +240,15 @@ serverFiles:
               severity: warning
               component: keda
             annotations:
-              summary: ScaledObject {{ $labels.exported_namespace }}/{{ $labels.scaledObject }} is failing to reconcile
+              summary: ScaledObject {{ $labels.namespace }}/{{ $labels.scaledObject }} is failing to reconcile
               description: |
                 keda_scaled_object_errors_total is increasing. Run
-                `kubectl describe scaledobject -n {{ $labels.exported_namespace }} {{ $labels.scaledObject }}`
+                `kubectl describe scaledobject -n {{ $labels.namespace }} {{ $labels.scaledObject }}`
                 to inspect the status condition.
 
           - alert: KedaScalerErrors
             expr: |
-              sum by (scaledObject, scaler, exported_namespace) (
+              sum by (scaledObject, scaler, namespace) (
                 rate(keda_scaler_detail_errors_total[5m])
               ) > 0.1
             for: 10m
@@ -215,13 +259,13 @@ serverFiles:
               summary: KEDA scaler {{ $labels.scaler }} for {{ $labels.scaledObject }} is failing
               description: |
                 Scaler {{ $labels.scaler }} on
-                {{ $labels.exported_namespace }}/{{ $labels.scaledObject }} is returning
+                {{ $labels.namespace }}/{{ $labels.scaledObject }} is returning
                 errors > 0.1/s sustained 10m. Check the upstream trigger
                 source (queue, prometheus, etc.).
 
           - alert: KedaScalerMetricsLatencyHigh
             expr: |
-              max by (scaledObject, scaler, exported_namespace) (
+              max by (scaledObject, scaler, namespace) (
                 keda_scaler_metrics_latency_seconds
               ) > 1
             for: 10m

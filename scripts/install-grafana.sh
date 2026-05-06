@@ -35,5 +35,10 @@ helm upgrade --install "${GRAFANA_RELEASE}" grafana/grafana \
   --set adminPassword="${GRAFANA_ADMIN_PASSWORD:-admin}" \
   --wait
 
+# Grafana provisions datasources only at startup, and dashboard file
+# provisioning can lag behind ConfigMap projection updates. Restart after
+# refreshing ConfigMaps so re-running this script makes the UI converge on
+# the files in grafana/.
+kubectl -n "${MONITORING_NAMESPACE}" rollout restart deployment/"${GRAFANA_RELEASE}" >/dev/null
 kubectl_wait_rollout "${MONITORING_NAMESPACE}" deployment/"${GRAFANA_RELEASE}"
 log "Grafana is ready"

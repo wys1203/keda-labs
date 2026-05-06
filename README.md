@@ -6,7 +6,7 @@ Reusable kind lab for KEDA experiments on Kubernetes `1.24.17` with:
 - zone labels: `topology.kubernetes.io/zone=dc1|dc2|dc3`
 - KEDA `2.18.3` with operator + metrics-apiserver + admission-webhooks Prometheus endpoints enabled
 - Prometheus + Alertmanager + kube-state-metrics + node-exporter
-- Grafana `11` provisioned with two dashboards (control-plane health, demo CPU autoscaling)
+- Grafana `11` provisioned with dashboards for the monitoring stack, KEDA control-plane health, and demo CPU autoscaling
 - KEDA-specific alert rules (component down, reconcile errors, adapter↔operator gRPC errors, scaler errors, demo HPA pinned at max, demo pods Pending)
 - Two demo workloads — one with a CPU (resource) trigger, one with a Prometheus (external) trigger — so every KEDA metric path is exercised
 
@@ -90,10 +90,11 @@ panel on *KEDA Operations*.
 
 ### Grafana dashboards
 
-Two dashboards are provisioned from `grafana/dashboards/`:
+Three dashboards are provisioned from `grafana/dashboards/`:
 
 | UID | Title | Use it for |
 | --- | --- | --- |
+| `monitoring-stack` | Monitoring Stack | Monitoring-only installs: Prometheus scrape health, Kubernetes node/pod inventory, node-exporter CPU/memory, and active target health. |
 | `keda-operations` | KEDA Operations | KEDA control-plane health: pod up state, reconcile errors, reconcile latency, workqueue depth, component CPU/RAM, **adapter ↔ operator gRPC** traffic + latency, **external scaler** activity / latency / errors. |
 | `keda-demo-cpu-scaling` | KEDA Demo - CPU Autoscaling | The cpu-demo workload: replicas (current vs desired vs min/max), per-pod CPU vs request, utilization vs the 50% trigger threshold, pod phases, zone spread, firing-alerts table. |
 

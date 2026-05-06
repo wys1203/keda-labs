@@ -393,7 +393,7 @@
       },
       "targets": [
         {
-          "expr": "sum(keda_resource_registered_total{type=\"scaled_object\", exported_namespace=~\"$namespace\"})",
+          "expr": "sum(keda_resource_registered_total{type=\"scaled_object\", namespace=~\"$namespace\"})",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -442,7 +442,7 @@
       },
       "targets": [
         {
-          "expr": "sum(keda_resource_registered_total{type=\"scaled_job\", exported_namespace=~\"$namespace\"}) or vector(0)",
+          "expr": "sum(keda_resource_registered_total{type=\"scaled_job\", namespace=~\"$namespace\"}) or vector(0)",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -491,7 +491,7 @@
       },
       "targets": [
         {
-          "expr": "sum(keda_resource_registered_total{type=~\".*trigger_authentication.*\", exported_namespace=~\"$namespace\"}) or vector(0)",
+          "expr": "sum(keda_resource_registered_total{type=~\".*trigger_authentication.*\", namespace=~\"$namespace\"}) or vector(0)",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -541,7 +541,7 @@
       },
       "targets": [
         {
-          "expr": "sum(keda_scaled_object_paused{exported_namespace=~\"$namespace\"}) or vector(0)",
+          "expr": "sum(keda_scaled_object_paused{namespace=~\"$namespace\"}) or vector(0)",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -635,7 +635,7 @@
       },
       "targets": [
         {
-          "expr": "sum by(type) (keda_resource_registered_total{exported_namespace=~\"$namespace\"})",
+          "expr": "sum by(type) (keda_resource_registered_total{namespace=~\"$namespace\"})",
           "refId": "A",
           "legendFormat": "{{type}}",
           "datasource": {
@@ -698,9 +698,9 @@
       },
       "targets": [
         {
-          "expr": "sum by (scaledObject, exported_namespace) (rate(keda_scaled_object_errors_total{exported_namespace=~\"$namespace\"}[$__rate_interval]))",
+          "expr": "sum by (scaledObject, namespace) (rate(keda_scaled_object_errors_total{namespace=~\"$namespace\"}[$__rate_interval]))",
           "refId": "A",
-          "legendFormat": "{{exported_namespace}}/{{scaledObject}}",
+          "legendFormat": "{{namespace}}/{{scaledObject}}",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -1123,9 +1123,9 @@
       },
       "targets": [
         {
-          "expr": "max by (exported_namespace, scaledObject, scaler) (keda_scaler_active{exported_namespace=~\"$namespace\"})",
+          "expr": "max by (namespace, scaledObject, scaler) (keda_scaler_active{namespace=~\"$namespace\"})",
           "refId": "A",
-          "legendFormat": "{{exported_namespace}}/{{scaledObject}} {{scaler}}",
+          "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -1163,9 +1163,9 @@
       },
       "targets": [
         {
-          "expr": "max by (exported_namespace, scaledObject, scaler, metric) (keda_scaler_metrics_value{exported_namespace=~\"$namespace\"})",
+          "expr": "max by (namespace, scaledObject, scaler, metric) (keda_scaler_metrics_value{namespace=~\"$namespace\"})",
           "refId": "A",
-          "legendFormat": "{{exported_namespace}}/{{scaledObject}} {{scaler}} ({{metric}})",
+          "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}} ({{metric}})",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -1202,9 +1202,9 @@
       },
       "targets": [
         {
-          "expr": "max by (exported_namespace, scaledObject, scaler) (keda_scaler_metrics_latency_seconds{exported_namespace=~\"$namespace\"})",
+          "expr": "max by (namespace, scaledObject, scaler) (keda_scaler_metrics_latency_seconds{namespace=~\"$namespace\"})",
           "refId": "A",
-          "legendFormat": "{{exported_namespace}}/{{scaledObject}} {{scaler}}",
+          "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -1242,9 +1242,9 @@
       },
       "targets": [
         {
-          "expr": "sum by (exported_namespace, scaledObject, scaler) (rate(keda_scaler_detail_errors_total{exported_namespace=~\"$namespace\"}[$__rate_interval]))",
+          "expr": "sum by (namespace, scaledObject, scaler) (rate(keda_scaler_detail_errors_total{namespace=~\"$namespace\"}[$__rate_interval]))",
           "refId": "A",
-          "legendFormat": "{{exported_namespace}}/{{scaledObject}} {{scaler}}",
+          "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -1421,11 +1421,11 @@
       "panels": [
         {
           "type": "timeseries",
-          "id": 601,
-          "title": "CPU usage (cores)",
+          "id": 610,
+          "title": "Operator \u2014 CPU (cores)",
           "gridPos": {
             "h": 8,
-            "w": 12,
+            "w": 8,
             "x": 0,
             "y": 71
           },
@@ -1435,27 +1435,27 @@
           },
           "targets": [
             {
-              "expr": "sum by (container) (rate(container_cpu_usage_seconds_total{namespace=~\"$namespace\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\"}[5m]))",
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"keda\", container=\"keda-operator\"}[5m]))",
               "refId": "A",
-              "legendFormat": "{{container}} usage",
+              "legendFormat": "usage",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
               }
             },
             {
-              "expr": "sum by (container) (kube_pod_container_resource_requests{namespace=~\"$namespace\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"cpu\"})",
+              "expr": "sum(kube_pod_container_resource_requests{namespace=\"keda\", container=\"keda-operator\", resource=\"cpu\"})",
               "refId": "B",
-              "legendFormat": "{{container}} request",
+              "legendFormat": "request",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
               }
             },
             {
-              "expr": "sum by (container) (kube_pod_container_resource_limits{namespace=~\"$namespace\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"cpu\"})",
+              "expr": "sum(kube_pod_container_resource_limits{namespace=\"keda\", container=\"keda-operator\", resource=\"cpu\"})",
               "refId": "C",
-              "legendFormat": "{{container}} limit",
+              "legendFormat": "limit",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
@@ -1465,18 +1465,81 @@
           "fieldConfig": {
             "defaults": {
               "unit": "cores",
-              "min": 0
+              "min": 0,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "request"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        8,
+                        8
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "limit"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        8,
+                        8
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
             }
           }
         },
         {
           "type": "timeseries",
-          "id": 602,
-          "title": "Memory usage",
+          "id": 611,
+          "title": "Operator \u2014 Memory",
           "gridPos": {
             "h": 8,
-            "w": 12,
-            "x": 12,
+            "w": 8,
+            "x": 8,
             "y": 71
           },
           "datasource": {
@@ -1485,27 +1548,27 @@
           },
           "targets": [
             {
-              "expr": "sum by (container) (container_memory_working_set_bytes{namespace=~\"$namespace\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\"})",
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"keda\", container=\"keda-operator\"})",
               "refId": "A",
-              "legendFormat": "{{container}} usage",
+              "legendFormat": "usage",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
               }
             },
             {
-              "expr": "sum by (container) (kube_pod_container_resource_requests{namespace=~\"$namespace\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"memory\"})",
+              "expr": "sum(kube_pod_container_resource_requests{namespace=\"keda\", container=\"keda-operator\", resource=\"memory\"})",
               "refId": "B",
-              "legendFormat": "{{container}} request",
+              "legendFormat": "request",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
               }
             },
             {
-              "expr": "sum by (container) (kube_pod_container_resource_limits{namespace=~\"$namespace\", container=~\"keda-operator|keda-operator-metrics-apiserver|keda-admission-webhooks\", resource=\"memory\"})",
+              "expr": "sum(kube_pod_container_resource_limits{namespace=\"keda\", container=\"keda-operator\", resource=\"memory\"})",
               "refId": "C",
-              "legendFormat": "{{container}} limit",
+              "legendFormat": "limit",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
@@ -1515,7 +1578,765 @@
           "fieldConfig": {
             "defaults": {
               "unit": "bytes",
-              "min": 0
+              "min": 0,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "request"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        8,
+                        8
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "limit"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        8,
+                        8
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          }
+        },
+        {
+          "type": "timeseries",
+          "id": 612,
+          "title": "Operator \u2014 CPU throttling",
+          "description": "Percent of CFS scheduling periods in which the kernel throttled the container. Sustained > 10% means the container is hitting its CPU limit and being slowed down.",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 16,
+            "y": 71
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "expr": "100 * sum(rate(container_cpu_cfs_throttled_periods_total{namespace=\"keda\", container=\"keda-operator\"}[5m])) / sum(rate(container_cpu_cfs_periods_total{namespace=\"keda\", container=\"keda-operator\"}[5m]))",
+              "refId": "A",
+              "legendFormat": "throttled %",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            },
+            {
+              "expr": "vector(10)",
+              "refId": "B",
+              "legendFormat": "alert threshold",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "alert threshold"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        10,
+                        10
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          }
+        },
+        {
+          "type": "timeseries",
+          "id": 613,
+          "title": "Metrics API Server \u2014 CPU (cores)",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 79
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\"}[5m]))",
+              "refId": "A",
+              "legendFormat": "usage",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            },
+            {
+              "expr": "sum(kube_pod_container_resource_requests{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\", resource=\"cpu\"})",
+              "refId": "B",
+              "legendFormat": "request",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            },
+            {
+              "expr": "sum(kube_pod_container_resource_limits{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\", resource=\"cpu\"})",
+              "refId": "C",
+              "legendFormat": "limit",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "cores",
+              "min": 0,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "request"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        8,
+                        8
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "limit"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        8,
+                        8
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          }
+        },
+        {
+          "type": "timeseries",
+          "id": 614,
+          "title": "Metrics API Server \u2014 Memory",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 8,
+            "y": 79
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\"})",
+              "refId": "A",
+              "legendFormat": "usage",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            },
+            {
+              "expr": "sum(kube_pod_container_resource_requests{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\", resource=\"memory\"})",
+              "refId": "B",
+              "legendFormat": "request",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            },
+            {
+              "expr": "sum(kube_pod_container_resource_limits{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\", resource=\"memory\"})",
+              "refId": "C",
+              "legendFormat": "limit",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "request"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        8,
+                        8
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "limit"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        8,
+                        8
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          }
+        },
+        {
+          "type": "timeseries",
+          "id": 615,
+          "title": "Metrics API Server \u2014 CPU throttling",
+          "description": "Percent of CFS scheduling periods in which the kernel throttled the container. Sustained > 10% means the container is hitting its CPU limit and being slowed down.",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 16,
+            "y": 79
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "expr": "100 * sum(rate(container_cpu_cfs_throttled_periods_total{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\"}[5m])) / sum(rate(container_cpu_cfs_periods_total{namespace=\"keda\", container=\"keda-operator-metrics-apiserver\"}[5m]))",
+              "refId": "A",
+              "legendFormat": "throttled %",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            },
+            {
+              "expr": "vector(10)",
+              "refId": "B",
+              "legendFormat": "alert threshold",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "alert threshold"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        10,
+                        10
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          }
+        },
+        {
+          "type": "timeseries",
+          "id": 616,
+          "title": "Admission Webhooks \u2014 CPU (cores)",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 87
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"keda\", container=\"keda-admission-webhooks\"}[5m]))",
+              "refId": "A",
+              "legendFormat": "usage",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            },
+            {
+              "expr": "sum(kube_pod_container_resource_requests{namespace=\"keda\", container=\"keda-admission-webhooks\", resource=\"cpu\"})",
+              "refId": "B",
+              "legendFormat": "request",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            },
+            {
+              "expr": "sum(kube_pod_container_resource_limits{namespace=\"keda\", container=\"keda-admission-webhooks\", resource=\"cpu\"})",
+              "refId": "C",
+              "legendFormat": "limit",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "cores",
+              "min": 0,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "request"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        8,
+                        8
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "limit"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        8,
+                        8
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          }
+        },
+        {
+          "type": "timeseries",
+          "id": 617,
+          "title": "Admission Webhooks \u2014 Memory",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 8,
+            "y": 87
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"keda\", container=\"keda-admission-webhooks\"})",
+              "refId": "A",
+              "legendFormat": "usage",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            },
+            {
+              "expr": "sum(kube_pod_container_resource_requests{namespace=\"keda\", container=\"keda-admission-webhooks\", resource=\"memory\"})",
+              "refId": "B",
+              "legendFormat": "request",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            },
+            {
+              "expr": "sum(kube_pod_container_resource_limits{namespace=\"keda\", container=\"keda-admission-webhooks\", resource=\"memory\"})",
+              "refId": "C",
+              "legendFormat": "limit",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "request"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        8,
+                        8
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "limit"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        8,
+                        8
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          }
+        },
+        {
+          "type": "timeseries",
+          "id": 618,
+          "title": "Admission Webhooks \u2014 CPU throttling",
+          "description": "Percent of CFS scheduling periods in which the kernel throttled the container. Sustained > 10% means the container is hitting its CPU limit and being slowed down.",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 16,
+            "y": 87
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "expr": "100 * sum(rate(container_cpu_cfs_throttled_periods_total{namespace=\"keda\", container=\"keda-admission-webhooks\"}[5m])) / sum(rate(container_cpu_cfs_periods_total{namespace=\"keda\", container=\"keda-admission-webhooks\"}[5m]))",
+              "refId": "A",
+              "legendFormat": "throttled %",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            },
+            {
+              "expr": "vector(10)",
+              "refId": "B",
+              "legendFormat": "alert threshold",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "alert threshold"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        10,
+                        10
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
             }
           }
         }
@@ -1615,6 +2436,6 @@
   "timezone": "",
   "title": "KEDA Operations",
   "uid": "keda-operations",
-  "version": 4,
+  "version": 6,
   "weekStart": ""
 }
