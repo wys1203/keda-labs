@@ -14,7 +14,7 @@ helm upgrade --install cert-manager jetstack/cert-manager \
   --version "${CERT_MANAGER_VERSION}" \
   --namespace "${CERT_MANAGER_NAMESPACE}" \
   --create-namespace \
-  --set installCRDs=true \
+  --set crds.enabled=true \
   --wait
 
 wait_for_workloads "${CERT_MANAGER_NAMESPACE}"

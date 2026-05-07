@@ -85,14 +85,40 @@ load_docker_image_to_kind() {
 
   image_archive="$(mktemp -t kind-image.XXXXXX.tar)"
   log "loading image into kind cluster '${CLUSTER_NAME}' for ${platform}: ${image}"
-  docker save --platform "${platform}" -o "${image_archive}" "${image}" || {
+  # Don't pass `--platform` to `docker save`: digest-pulled images may not
+  # carry platform metadata in their config and `docker save --platform`
+  # then refuses with "no suitable export target found … does not provide
+  # the specified platform". Multi-arch filtering is enforced below by
+  # `ctr import --platform=…` which is the layer that actually matters.
+  docker save -o "${image_archive}" "${image}" || {
     rm -f "${image_archive}"
-    fail "failed to export ${image} for ${platform}"
+    fail "failed to export ${image}"
   }
-  kind load image-archive "${image_archive}" --name "${CLUSTER_NAME}" >/dev/null || {
-    rm -f "${image_archive}"
-    fail "failed to load ${image} into kind cluster '${CLUSTER_NAME}'"
-  }
+
+  # Bypass `kind load image-archive` and import via ctr directly. kind
+  # passes `--all-platforms` to ctr import, which on a multi-arch image
+  # also pulls in the attestation-manifest blob shipped alongside the
+  # arch-specific image. ctr then fails with "mismatched rootfs and
+  # manifest layers" because the attestation references content that
+  # isn't in the local tar. Using a single `--platform` filter restricts
+  # the import to just this arch's image + layers, ignoring attestation.
+  #
+  # Skip the control-plane node: it carries the standard
+  # node-role.kubernetes.io/control-plane:NoSchedule taint, so user
+  # workloads never land there and there's nothing to gain from
+  # pre-loading. Skipping also dodges a tricky edge case where a
+  # control-plane's content store, after earlier failed imports, holds
+  # a leftover attestation blob that re-triggers the mismatch error
+  # even with `--platform` set.
+  local nodes node
+  nodes="$(kind get nodes --name "${CLUSTER_NAME}" | grep -v -- '-control-plane$' || true)"
+  for node in ${nodes}; do
+    docker exec -i "${node}" ctr -n k8s.io image import \
+      --platform="${platform}" --digests - < "${image_archive}" >/dev/null || {
+      rm -f "${image_archive}"
+      fail "failed to import ${image} into kind node ${node}"
+    }
+  done
   rm -f "${image_archive}"
 }
 
