@@ -906,9 +906,9 @@
       },
       {
         "current": {
-          "selected": false,
-          "text": "Demo",
-          "value": "Demo"
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
         },
         "datasource": {
           "type": "prometheus",
@@ -916,9 +916,9 @@
         },
         "definition": "label_values(kube_namespace_labels, label_prodsuite)",
         "hide": 0,
-        "includeAll": false,
+        "includeAll": true,
         "label": "Prodsuite",
-        "multi": false,
+        "multi": true,
         "name": "prodsuite",
         "options": [],
         "query": {

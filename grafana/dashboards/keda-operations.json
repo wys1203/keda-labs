@@ -263,7 +263,7 @@
       "title": "KEDA Version",
       "gridPos": {
         "h": 4,
-        "w": 6,
+        "w": 4,
         "x": 12,
         "y": 1
       },
@@ -315,8 +315,8 @@
       "description": "KEDA + demo alerts currently firing.",
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 18,
+        "w": 4,
+        "x": 16,
         "y": 1
       },
       "datasource": {
@@ -365,6 +365,71 @@
       }
     },
     {
+      "type": "stat",
+      "id": 106,
+      "title": "On routable nodes",
+      "description": "KEDA pods scheduled on a node-routable=true (tainted) node. Should always be 0; KEDA components must stay off routable workload nodes.",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "expr": "count(kube_pod_info{namespace=\"platform-keda\"} * on(node) group_left() last_over_time(kube_node_labels{label_node_routable=\"true\"}[1m])) or vector(0)",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "OK",
+                  "color": "green"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "N/A"
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
       "type": "row",
       "id": 200,
       "title": "Resources managed",
@@ -393,7 +458,7 @@
       },
       "targets": [
         {
-          "expr": "sum(keda_resource_registered_total{type=\"scaled_object\", namespace=~\"$namespace\"})",
+          "expr": "sum(keda_resource_registered_total{type=\"scaled_object\", exported_namespace=~\"$namespace\"}) or vector(0)",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -442,7 +507,7 @@
       },
       "targets": [
         {
-          "expr": "sum(keda_resource_registered_total{type=\"scaled_job\", namespace=~\"$namespace\"}) or vector(0)",
+          "expr": "sum(keda_resource_registered_total{type=\"scaled_job\", exported_namespace=~\"$namespace\"}) or vector(0)",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -491,7 +556,7 @@
       },
       "targets": [
         {
-          "expr": "sum(keda_resource_registered_total{type=~\".*trigger_authentication.*\", namespace=~\"$namespace\"}) or vector(0)",
+          "expr": "sum(keda_resource_registered_total{type=~\".*trigger_authentication.*\", exported_namespace=~\"$namespace\"}) or vector(0)",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -541,7 +606,7 @@
       },
       "targets": [
         {
-          "expr": "sum(keda_scaled_object_paused{namespace=~\"$namespace\"}) or vector(0)",
+          "expr": "sum(keda_scaled_object_paused{exported_namespace=~\"$namespace\"}) or vector(0)",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -635,7 +700,7 @@
       },
       "targets": [
         {
-          "expr": "sum by(type) (keda_resource_registered_total{namespace=~\"$namespace\"})",
+          "expr": "sum by(type) (keda_resource_registered_total{exported_namespace=~\"$namespace\"})",
           "refId": "A",
           "legendFormat": "{{type}}",
           "datasource": {
@@ -698,9 +763,9 @@
       },
       "targets": [
         {
-          "expr": "sum by (scaledObject, namespace) (rate(keda_scaled_object_errors_total{namespace=~\"$namespace\"}[$__rate_interval]))",
+          "expr": "sum by (scaledObject, exported_namespace) (rate(keda_scaled_object_errors_total{exported_namespace=~\"$namespace\"}[$__rate_interval]))",
           "refId": "A",
-          "legendFormat": "{{namespace}}/{{scaledObject}}",
+          "legendFormat": "{{exported_namespace}}/{{scaledObject}}",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -1123,9 +1188,9 @@
       },
       "targets": [
         {
-          "expr": "max by (namespace, scaledObject, scaler) (keda_scaler_active{namespace=~\"$namespace\"})",
+          "expr": "max by (exported_namespace, scaledObject, scaler) (keda_scaler_active{exported_namespace=~\"$namespace\"})",
           "refId": "A",
-          "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}",
+          "legendFormat": "{{exported_namespace}}/{{scaledObject}} {{scaler}}",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -1163,9 +1228,9 @@
       },
       "targets": [
         {
-          "expr": "max by (namespace, scaledObject, scaler, metric) (keda_scaler_metrics_value{namespace=~\"$namespace\"})",
+          "expr": "max by (exported_namespace, scaledObject, scaler, metric) (keda_scaler_metrics_value{exported_namespace=~\"$namespace\"})",
           "refId": "A",
-          "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}} ({{metric}})",
+          "legendFormat": "{{exported_namespace}}/{{scaledObject}} {{scaler}} ({{metric}})",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -1202,9 +1267,9 @@
       },
       "targets": [
         {
-          "expr": "max by (namespace, scaledObject, scaler) (keda_scaler_metrics_latency_seconds{namespace=~\"$namespace\"})",
+          "expr": "max by (exported_namespace, scaledObject, scaler) (keda_scaler_metrics_latency_seconds{exported_namespace=~\"$namespace\"})",
           "refId": "A",
-          "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}",
+          "legendFormat": "{{exported_namespace}}/{{scaledObject}} {{scaler}}",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -1242,9 +1307,9 @@
       },
       "targets": [
         {
-          "expr": "sum by (namespace, scaledObject, scaler) (rate(keda_scaler_detail_errors_total{namespace=~\"$namespace\"}[$__rate_interval]))",
+          "expr": "sum by (exported_namespace, scaledObject, scaler) (rate(keda_scaler_detail_errors_total{exported_namespace=~\"$namespace\"}[$__rate_interval]))",
           "refId": "A",
-          "legendFormat": "{{namespace}}/{{scaledObject}} {{scaler}}",
+          "legendFormat": "{{exported_namespace}}/{{scaledObject}} {{scaler}}",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -1435,16 +1500,16 @@
           },
           "targets": [
             {
-              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"platform-keda\", container=\"keda-operator\"}[5m]))",
+              "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"platform-keda\", container=\"keda-operator\"}[5m]))",
               "refId": "A",
-              "legendFormat": "usage",
+              "legendFormat": "{{pod}}",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-operator\", resource=\"cpu\"})",
+              "expr": "max(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-operator\", resource=\"cpu\"})",
               "refId": "B",
               "legendFormat": "request",
               "datasource": {
@@ -1453,7 +1518,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-operator\", resource=\"cpu\"})",
+              "expr": "max(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-operator\", resource=\"cpu\"})",
               "refId": "C",
               "legendFormat": "limit",
               "datasource": {
@@ -1548,16 +1613,16 @@
           },
           "targets": [
             {
-              "expr": "sum(container_memory_working_set_bytes{namespace=\"platform-keda\", container=\"keda-operator\"})",
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"platform-keda\", container=\"keda-operator\"})",
               "refId": "A",
-              "legendFormat": "usage",
+              "legendFormat": "{{pod}}",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-operator\", resource=\"memory\"})",
+              "expr": "max(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-operator\", resource=\"memory\"})",
               "refId": "B",
               "legendFormat": "request",
               "datasource": {
@@ -1566,7 +1631,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-operator\", resource=\"memory\"})",
+              "expr": "max(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-operator\", resource=\"memory\"})",
               "refId": "C",
               "legendFormat": "limit",
               "datasource": {
@@ -1662,9 +1727,9 @@
           },
           "targets": [
             {
-              "expr": "100 * sum(rate(container_cpu_cfs_throttled_periods_total{namespace=\"platform-keda\", container=\"keda-operator\"}[5m])) / sum(rate(container_cpu_cfs_periods_total{namespace=\"platform-keda\", container=\"keda-operator\"}[5m]))",
+              "expr": "100 * sum by (pod) (rate(container_cpu_cfs_throttled_periods_total{namespace=\"platform-keda\", container=\"keda-operator\"}[5m])) / sum by (pod) (rate(container_cpu_cfs_periods_total{namespace=\"platform-keda\", container=\"keda-operator\"}[5m]))",
               "refId": "A",
-              "legendFormat": "throttled %",
+              "legendFormat": "{{pod}}",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
@@ -1742,16 +1807,16 @@
           },
           "targets": [
             {
-              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\"}[5m]))",
+              "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\"}[5m]))",
               "refId": "A",
-              "legendFormat": "usage",
+              "legendFormat": "{{pod}}",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\", resource=\"cpu\"})",
+              "expr": "max(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\", resource=\"cpu\"})",
               "refId": "B",
               "legendFormat": "request",
               "datasource": {
@@ -1760,7 +1825,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\", resource=\"cpu\"})",
+              "expr": "max(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\", resource=\"cpu\"})",
               "refId": "C",
               "legendFormat": "limit",
               "datasource": {
@@ -1855,16 +1920,16 @@
           },
           "targets": [
             {
-              "expr": "sum(container_memory_working_set_bytes{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\"})",
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\"})",
               "refId": "A",
-              "legendFormat": "usage",
+              "legendFormat": "{{pod}}",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\", resource=\"memory\"})",
+              "expr": "max(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\", resource=\"memory\"})",
               "refId": "B",
               "legendFormat": "request",
               "datasource": {
@@ -1873,7 +1938,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\", resource=\"memory\"})",
+              "expr": "max(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\", resource=\"memory\"})",
               "refId": "C",
               "legendFormat": "limit",
               "datasource": {
@@ -1969,9 +2034,9 @@
           },
           "targets": [
             {
-              "expr": "100 * sum(rate(container_cpu_cfs_throttled_periods_total{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\"}[5m])) / sum(rate(container_cpu_cfs_periods_total{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\"}[5m]))",
+              "expr": "100 * sum by (pod) (rate(container_cpu_cfs_throttled_periods_total{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\"}[5m])) / sum by (pod) (rate(container_cpu_cfs_periods_total{namespace=\"platform-keda\", container=\"keda-operator-metrics-apiserver\"}[5m]))",
               "refId": "A",
-              "legendFormat": "throttled %",
+              "legendFormat": "{{pod}}",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
@@ -2049,16 +2114,16 @@
           },
           "targets": [
             {
-              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"platform-keda\", container=\"keda-admission-webhooks\"}[5m]))",
+              "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"platform-keda\", container=\"keda-admission-webhooks\"}[5m]))",
               "refId": "A",
-              "legendFormat": "usage",
+              "legendFormat": "{{pod}}",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-admission-webhooks\", resource=\"cpu\"})",
+              "expr": "max(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-admission-webhooks\", resource=\"cpu\"})",
               "refId": "B",
               "legendFormat": "request",
               "datasource": {
@@ -2067,7 +2132,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-admission-webhooks\", resource=\"cpu\"})",
+              "expr": "max(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-admission-webhooks\", resource=\"cpu\"})",
               "refId": "C",
               "legendFormat": "limit",
               "datasource": {
@@ -2162,16 +2227,16 @@
           },
           "targets": [
             {
-              "expr": "sum(container_memory_working_set_bytes{namespace=\"platform-keda\", container=\"keda-admission-webhooks\"})",
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"platform-keda\", container=\"keda-admission-webhooks\"})",
               "refId": "A",
-              "legendFormat": "usage",
+              "legendFormat": "{{pod}}",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-admission-webhooks\", resource=\"memory\"})",
+              "expr": "max(kube_pod_container_resource_requests{namespace=\"platform-keda\", container=\"keda-admission-webhooks\", resource=\"memory\"})",
               "refId": "B",
               "legendFormat": "request",
               "datasource": {
@@ -2180,7 +2245,7 @@
               }
             },
             {
-              "expr": "sum(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-admission-webhooks\", resource=\"memory\"})",
+              "expr": "max(kube_pod_container_resource_limits{namespace=\"platform-keda\", container=\"keda-admission-webhooks\", resource=\"memory\"})",
               "refId": "C",
               "legendFormat": "limit",
               "datasource": {
@@ -2276,9 +2341,9 @@
           },
           "targets": [
             {
-              "expr": "100 * sum(rate(container_cpu_cfs_throttled_periods_total{namespace=\"platform-keda\", container=\"keda-admission-webhooks\"}[5m])) / sum(rate(container_cpu_cfs_periods_total{namespace=\"platform-keda\", container=\"keda-admission-webhooks\"}[5m]))",
+              "expr": "100 * sum by (pod) (rate(container_cpu_cfs_throttled_periods_total{namespace=\"platform-keda\", container=\"keda-admission-webhooks\"}[5m])) / sum by (pod) (rate(container_cpu_cfs_periods_total{namespace=\"platform-keda\", container=\"keda-admission-webhooks\"}[5m]))",
               "refId": "A",
-              "legendFormat": "throttled %",
+              "legendFormat": "{{pod}}",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
@@ -2339,6 +2404,94 @@
               "showLegend": true
             }
           }
+        },
+        {
+          "type": "table",
+          "id": 619,
+          "title": "Pod placement (routable check)",
+          "description": "Each KEDA pod with its node and routable status. Healthy when all rows show 'non-routable'.",
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 95
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "expr": "sum by (pod, node, routable) (label_replace(label_replace(kube_pod_info{namespace=\"platform-keda\"} * on(node) group_left(label_node_routable) last_over_time(kube_node_labels[1m]), \"routable\", \"violation\", \"label_node_routable\", \"true\"), \"routable\", \"non-routable\", \"label_node_routable\", \"^$\"))",
+              "refId": "A",
+              "format": "table",
+              "instant": true,
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ],
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "Value": true
+                },
+                "renameByName": {},
+                "indexByName": {
+                  "pod": 0,
+                  "node": 1,
+                  "routable": 2
+                }
+              }
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "auto"
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "routable"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "non-routable": {
+                            "text": "non-routable",
+                            "color": "green",
+                            "index": 0
+                          },
+                          "violation": {
+                            "text": "ROUTABLE (violation)",
+                            "color": "red",
+                            "index": 1
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
         }
       ]
     }
@@ -2372,9 +2525,9 @@
       },
       {
         "current": {
-          "selected": false,
-          "text": "Platform",
-          "value": "Platform"
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
         },
         "datasource": {
           "type": "prometheus",
@@ -2382,9 +2535,9 @@
         },
         "definition": "label_values(kube_namespace_labels, label_prodsuite)",
         "hide": 0,
-        "includeAll": false,
+        "includeAll": true,
         "label": "Prodsuite",
-        "multi": false,
+        "multi": true,
         "name": "prodsuite",
         "options": [],
         "query": {

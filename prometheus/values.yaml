@@ -15,6 +15,31 @@ server:
 prometheus-pushgateway:
   enabled: false
 
+# Align KEDA workload metrics with production (Prometheus Operator /
+# ServiceMonitor) label semantics, while leaving every other scrape alone.
+#
+# `honor_labels: true` (chart default) means the metric's own labels win
+# during scrape, so `kube_pod_info{namespace="demo-cpu"}` keeps its real
+# namespace — we want that for kube-state-metrics and cAdvisor.
+#
+# But KEDA's workload metrics emit their own `namespace=<ScaledObject ns>`,
+# which a production ServiceMonitor (honor_labels=false) would rewrite to
+# `exported_namespace`, with `namespace` becoming the operator pod's namespace
+# (`platform-keda`). We replicate that selectively via `metric_relabel_configs`
+# applied only to KEDA workload metric names — leaving every other metric
+# (ksm, cAdvisor, generic services) on the default honor_labels=true path.
+scrapeConfigs:
+  kubernetes-service-endpoints:
+    metric_relabel_configs:
+      - source_labels: [__name__, namespace]
+        regex: '(keda_(?:resource|scaled_object|scaler)_[a-z_]+);(.+)'
+        target_label: exported_namespace
+        replacement: '$2'
+      - source_labels: [__name__]
+        regex: 'keda_(?:resource|scaled_object|scaler)_[a-z_]+'
+        target_label: namespace
+        replacement: 'platform-keda'
+
 kube-state-metrics:
   enabled: true
   # Use the locally preloaded Docker Hardened Image inside kind.
@@ -28,7 +53,7 @@ kube-state-metrics:
   #   * namespace labels (`prodsuite`) so the dashboards can offer a
   #     "filter by prodsuite" template variable.
   metricLabelsAllowlist:
-    - nodes=[topology.kubernetes.io/zone,kubernetes.io/hostname]
+    - nodes=[topology.kubernetes.io/zone,kubernetes.io/hostname,node-routable]
     - namespaces=[prodsuite]
 
 prometheus-node-exporter:
@@ -43,16 +68,16 @@ prometheus-node-exporter:
 #
 #   * KEDA emits its workload metrics (`keda_resource_registered_total`,
 #     `keda_scaled_object_*`, `keda_scaler_*`) with a `namespace` label
-#     set to the ScaledObject's namespace. The chart's
-#     `kubernetes-service-endpoints` scrape job is configured with
-#     `honor_labels: true`, so when the metric's own `namespace` label
-#     collides with the relabel-injected target-pod namespace, the
-#     metric's value wins. We therefore filter / group by the plain
-#     `namespace` label everywhere — it correctly resolves to the
-#     ScaledObject's namespace, NOT the operator's pod namespace.
-#     (PR #4 originally claimed `exported_namespace` was the right
-#     label, but that was based on a wrong assumption about scrape
-#     behavior; honor_labels makes `namespace` the right answer.)
+#     set to the ScaledObject's namespace. The `metric_relabel_configs`
+#     block above rewrites those specific metric names so that — matching
+#     production ServiceMonitor semantics —
+#         namespace          = platform-keda          (operator pod ns)
+#         exported_namespace = <ScaledObject's ns>    (e.g. demo-cpu)
+#     Dashboards and alerts therefore group / filter KEDA workload metrics
+#     by `exported_namespace`. cAdvisor / kube-state-metrics metrics are
+#     untouched (the regex only matches keda_resource/scaled_object/scaler
+#     names), so `kube_pod_*{namespace="platform-keda"}` and
+#     `container_*{namespace="platform-keda"}` keep working.
 serverFiles:
   alerting_rules.yml:
     groups:
@@ -232,7 +257,7 @@ serverFiles:
         rules:
           - alert: KedaScaledObjectErrors
             expr: |
-              sum by (scaledObject, namespace) (
+              sum by (scaledObject, exported_namespace) (
                 rate(keda_scaled_object_errors_total[5m])
               ) > 0
             for: 5m
@@ -240,15 +265,15 @@ serverFiles:
               severity: warning
               component: keda
             annotations:
-              summary: ScaledObject {{ $labels.namespace }}/{{ $labels.scaledObject }} is failing to reconcile
+              summary: ScaledObject {{ $labels.exported_namespace }}/{{ $labels.scaledObject }} is failing to reconcile
               description: |
                 keda_scaled_object_errors_total is increasing. Run
-                `kubectl describe scaledobject -n {{ $labels.namespace }} {{ $labels.scaledObject }}`
+                `kubectl describe scaledobject -n {{ $labels.exported_namespace }} {{ $labels.scaledObject }}`
                 to inspect the status condition.
 
           - alert: KedaScalerErrors
             expr: |
-              sum by (scaledObject, scaler, namespace) (
+              sum by (scaledObject, scaler, exported_namespace) (
                 rate(keda_scaler_detail_errors_total[5m])
               ) > 0.1
             for: 10m
@@ -259,13 +284,13 @@ serverFiles:
               summary: KEDA scaler {{ $labels.scaler }} for {{ $labels.scaledObject }} is failing
               description: |
                 Scaler {{ $labels.scaler }} on
-                {{ $labels.namespace }}/{{ $labels.scaledObject }} is returning
+                {{ $labels.exported_namespace }}/{{ $labels.scaledObject }} is returning
                 errors > 0.1/s sustained 10m. Check the upstream trigger
                 source (queue, prometheus, etc.).
 
           - alert: KedaScalerMetricsLatencyHigh
             expr: |
-              max by (scaledObject, scaler, namespace) (
+              max by (scaledObject, scaler, exported_namespace) (
                 keda_scaler_metrics_latency_seconds
               ) > 1
             for: 10m
