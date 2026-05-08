@@ -1,0 +1,24 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: keda-deprecation-webhook
+  annotations:
+    cert-manager.io/inject-ca-from: keda-system/kdw-serving-cert
+webhooks:
+  - name: vkdw.keda.sh
+    failurePolicy: Ignore
+    sideEffects: None
+    admissionReviewVersions: ["v1"]
+    timeoutSeconds: 5
+    matchPolicy: Equivalent
+    rules:
+      - apiGroups: ["keda.sh"]
+        apiVersions: ["v1alpha1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["scaledobjects", "scaledjobs"]
+    clientConfig:
+      service:
+        namespace: keda-system
+        name: keda-deprecation-webhook
+        path: /validate-keda-sh-v1alpha1
+        port: 443
