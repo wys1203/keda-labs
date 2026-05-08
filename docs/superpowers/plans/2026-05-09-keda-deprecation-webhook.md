@@ -6,7 +6,9 @@
 
 **Architecture:** One Go binary, two replicas, leader-elected controller (gauge emission) + per-pod webhook server. Rule engine is a registry of `Rule` interfaces; webhook and controller both call `rules.LintAll(target)`. Severity is resolved through a hot-reloadable ConfigMap whose changes propagate via informer + per-object label-set bookkeeping (no ghost gauge series). cert-manager issues the webhook TLS cert; a `ValidatingWebhookConfiguration` carries `cert-manager.io/inject-ca-from`. Failure mode is `Ignore` — controller path provides eventual visibility.
 
-**Tech Stack:** Go 1.23, sigs.k8s.io/controller-runtime, github.com/kedacore/keda/v2 (CRD types), github.com/prometheus/client_golang, sigs.k8s.io/yaml, sigs.k8s.io/controller-runtime/pkg/envtest (integration tests), kind + helm + cert-manager (lab).
+**Tech Stack:** Go 1.25 (`go.mod` directive, see deviation note), sigs.k8s.io/controller-runtime, github.com/kedacore/keda/v2 (CRD types), github.com/prometheus/client_golang, sigs.k8s.io/yaml, sigs.k8s.io/controller-runtime/pkg/envtest (integration tests), kind + helm + cert-manager (lab).
+
+**Dependency-version deviation (resolved during T2):** The plan originally pinned KEDA v2.16.1 + Go 1.23 to match the lab's running KEDA. The 2026 module ecosystem could not resolve KEDA v2.16.1's transitive k8s deps under a `go 1.23` directive. Resolution: accept KEDA v2.19.0 + `go 1.25` directive + `replace` directives pinning k8s.io/* to v0.34.3 and sigs.k8s.io/controller-runtime to v0.22.4 (per KEDA v2.19's own go.mod). The KEDA v1alpha1 ScaledObject/ScaledJob structs are unchanged between 2.16 and 2.19 — Go types deserialize the lab's running 2.16.1 CRDs without issue. **Downstream impact:** Task 17's Dockerfile must use `golang:1.25-alpine` (not `golang:1.23-alpine`).
 
 **Spec:** `docs/superpowers/specs/2026-05-05-keda-deprecation-webhook-design.md` (commit `fb7a5a2`).
 
@@ -2661,7 +2663,7 @@ git commit -m "feat(kdw): main entrypoint wiring manager + webhook + reconcilers
 ```dockerfile
 # Dockerfile
 # syntax=docker/dockerfile:1.6
-FROM golang:1.23-alpine AS build
+FROM golang:1.25-alpine AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
