@@ -560,3 +560,43 @@ serverFiles:
                 One or more demo-cpu pods have been Pending for 5m. The kind
                 lab is small — the cluster may be out of CPU. Check
                 `kubectl describe pod` for scheduling events.
+
+      # keda-deprecation-webhook (KDW) — alerts on the lint webhook itself.
+      # See docs/superpowers/specs/2026-05-05-keda-deprecation-webhook-design.md
+      # for the design and SLO motivation.
+      - name: keda-deprecations
+        interval: 30s
+        rules:
+          - alert: KedaDeprecationWebhookDown
+            expr: up{job="kubernetes-service-endpoints", service="keda-deprecation-webhook"} == 0
+            for: 5m
+            labels:
+              severity: critical
+              component: keda-deprecation-webhook
+            annotations:
+              summary: keda-deprecation-webhook is unreachable
+              description: |
+                failurePolicy=Ignore — deprecated specs may slip through during this outage.
+                Controller path will eventually surface them via keda_deprecation_violations.
+
+          - alert: KedaDeprecationConfigReloadFailing
+            expr: increase(keda_deprecation_config_reloads_total{result="error"}[10m]) > 0
+            for: 0m
+            labels:
+              severity: warning
+              component: keda-deprecation-webhook
+            annotations:
+              summary: keda-deprecation-webhook ConfigMap is invalid
+              description: |
+                Last good config still in use. Inspect events on the ConfigMap and fix.
+
+          - alert: KedaDeprecationErrorViolationsPresent
+            expr: sum(keda_deprecation_violations{severity="error"}) > 0
+            for: 1h
+            labels:
+              severity: warning
+              component: keda-deprecation-webhook
+            annotations:
+              summary: '{{ $value }} ScaledObject(s) still have severity=error deprecation violations'
+              description: |
+                These will break on KEDA 2.18. Review the KEDA Deprecations dashboard for the list.
