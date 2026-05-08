@@ -1,0 +1,131 @@
+---
+# Alertmanager webhook receiver that pretty-prints incoming payloads
+# to stdout so the lab can show the alert pipeline end-to-end without
+# depending on Slack / PagerDuty / email.
+#
+# Idempotent: every object is namespace-scoped to `monitoring` and uses
+# fixed names — `kubectl apply -f` is safe to run repeatedly.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alert-stdout-sink-script
+  namespace: monitoring
+  labels:
+    app: alert-stdout-sink
+data:
+  sink.py: |
+    #!/usr/bin/env python3
+    """Tiny HTTP server that prints every POST body as pretty JSON.
+
+    Stdlib-only on purpose — runs on python:3.12-alpine without pip.
+    Always responds 200 so Alertmanager doesn't retry-storm.
+    """
+    import json
+    import sys
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    SEP = "=" * 72
+
+    class Handler(BaseHTTPRequestHandler):
+        def _ok(self):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"ok\n")
+
+        def do_POST(self):
+            length = int(self.headers.get("Content-Length", "0"))
+            raw = self.rfile.read(length) if length else b""
+            print(SEP, flush=True)
+            print(f"ALERT WEBHOOK  path={self.path}  bytes={len(raw)}", flush=True)
+            try:
+                payload = json.loads(raw.decode("utf-8")) if raw else {}
+                print(json.dumps(payload, indent=2, sort_keys=True), flush=True)
+            except Exception as exc:  # noqa: BLE001
+                print(f"(non-JSON body: {exc})", flush=True)
+                print(raw.decode("utf-8", errors="replace"), flush=True)
+            print(SEP, flush=True)
+            self._ok()
+
+        def do_GET(self):
+            self._ok()
+
+        def log_message(self, fmt, *args):
+            # Suppress default access log; we already print on POST.
+            return
+
+    if __name__ == "__main__":
+        addr = ("0.0.0.0", 8080)
+        print(f"alert-stdout-sink listening on {addr[0]}:{addr[1]}", flush=True)
+        try:
+            HTTPServer(addr, Handler).serve_forever()
+        except KeyboardInterrupt:
+            sys.exit(0)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alert-stdout-sink
+  namespace: monitoring
+  labels:
+    app: alert-stdout-sink
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alert-stdout-sink
+  template:
+    metadata:
+      labels:
+        app: alert-stdout-sink
+    spec:
+      containers:
+        - name: sink
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "/script/sink.py"]
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: script
+              mountPath: /script
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+      volumes:
+        - name: script
+          configMap:
+            name: alert-stdout-sink-script
+            defaultMode: 0755
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alert-stdout-sink
+  namespace: monitoring
+  labels:
+    app: alert-stdout-sink
+spec:
+  type: ClusterIP
+  selector:
+    app: alert-stdout-sink
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP

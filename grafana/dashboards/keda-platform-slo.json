@@ -1,0 +1,424 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "row",
+      "id": 100,
+      "title": "Reconcile SLO (target 99% / 7d)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "id": 101,
+      "title": "7d compliance",
+      "description": "keda:reconcile_success:ratio_rate7d * 100. NaN until Prometheus has accumulated 7d of samples — expected on a fresh lab.",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "keda:reconcile_success:ratio_rate7d * 100",
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${datasource}" }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 3,
+          "noValue": "warming up",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 99 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "textMode": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 102,
+      "title": "Error budget remaining",
+      "description": "100 * (1 - (1 - SLI_7d) / 0.01). Negative means budget already blown.",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "100 * (1 - (1 - keda:reconcile_success:ratio_rate7d) / 0.01)",
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${datasource}" }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "noValue": "warming up",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "green", "value": 30 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "textMode": "auto"
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 103,
+      "title": "SLI rate1h over time",
+      "description": "Rolling 1h reconcile success ratio (in %).",
+      "gridPos": { "h": 6, "w": 8, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "keda:reconcile_success:ratio_rate1h * 100",
+          "refId": "A",
+          "legendFormat": "1h success %",
+          "datasource": { "type": "prometheus", "uid": "${datasource}" }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 3,
+          "min": 95,
+          "max": 100,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      }
+    },
+    {
+      "type": "stat",
+      "id": 104,
+      "title": "Current 1h burn rate",
+      "description": "(1 - SLI_1h) / 0.01. >1 burns budget; >=14.4 is fast-burn page territory.",
+      "gridPos": { "h": 6, "w": 4, "x": 20, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "(1 - keda:reconcile_success:ratio_rate1h) / 0.01",
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${datasource}" }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 14.4 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Value" },
+            "properties": [{ "id": "displayName", "value": "burn" }]
+          }
+        ]
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "type": "row",
+      "id": 200,
+      "title": "Operator UP SLO (target 99.9% / 7d)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "id": 201,
+      "title": "7d compliance",
+      "description": "keda:operator_up:ratio_rate7d * 100. NaN until Prometheus has accumulated 7d of samples.",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "keda:operator_up:ratio_rate7d * 100",
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${datasource}" }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 4,
+          "noValue": "warming up",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 99.9 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "textMode": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 202,
+      "title": "Error budget remaining",
+      "description": "100 * (1 - (1 - SLI_7d) / 0.001). Budget = 0.1% over 7d.",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "100 * (1 - (1 - keda:operator_up:ratio_rate7d) / 0.001)",
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${datasource}" }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "noValue": "warming up",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "green", "value": 30 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "textMode": "auto"
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 203,
+      "title": "SLI rate1h over time",
+      "description": "Rolling 1h operator UP ratio (in %), averaged across HA replicas.",
+      "gridPos": { "h": 6, "w": 8, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "keda:operator_up:ratio_rate1h * 100",
+          "refId": "A",
+          "legendFormat": "1h up %",
+          "datasource": { "type": "prometheus", "uid": "${datasource}" }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 4,
+          "min": 99,
+          "max": 100,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      }
+    },
+    {
+      "type": "stat",
+      "id": 204,
+      "title": "Current 1h burn rate",
+      "description": "(1 - SLI_1h) / 0.001. Budget = 0.1%. >=14.4 is fast-burn page territory.",
+      "gridPos": { "h": 6, "w": 4, "x": 20, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "(1 - keda:operator_up:ratio_rate1h) / 0.001",
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${datasource}" }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 14.4 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Value" },
+            "properties": [{ "id": "displayName", "value": "burn" }]
+          }
+        ]
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "type": "row",
+      "id": 300,
+      "title": "Active burn-rate alerts",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "table",
+      "id": 301,
+      "title": "Firing burn-rate alerts",
+      "description": "ALERTS for component=keda-platform-slo with alertstate=firing.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "ALERTS{component=\"keda-platform-slo\",alertstate=\"firing\"}",
+          "refId": "A",
+          "instant": true,
+          "format": "table",
+          "datasource": { "type": "prometheus", "uid": "${datasource}" }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "alertstate": true,
+              "component": true,
+              "job": true,
+              "instance": true
+            },
+            "indexByName": {
+              "alertname": 0,
+              "severity": 1,
+              "slo": 2,
+              "Value": 3
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto" }
+        }
+      },
+      "options": {
+        "showHeader": true
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["keda", "slo"],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "KEDA Platform SLOs",
+  "uid": "keda-platform-slo",
+  "version": 1,
+  "weekStart": ""
+}

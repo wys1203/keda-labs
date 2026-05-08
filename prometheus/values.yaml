@@ -4,6 +4,18 @@ alertmanager:
     enabled: false
   service:
     type: ClusterIP
+  config:
+    route:
+      group_by: ['alertname', 'severity']
+      group_wait: 10s
+      group_interval: 30s
+      repeat_interval: 5m
+      receiver: stdout-sink
+    receivers:
+      - name: stdout-sink
+        webhook_configs:
+          - url: 'http://alert-stdout-sink.monitoring.svc.cluster.local:8080/'
+            send_resolved: true
 
 server:
   persistentVolume:
@@ -81,6 +93,165 @@ prometheus-node-exporter:
 serverFiles:
   alerting_rules.yml:
     groups:
+      # Platform SLOs for the KEDA control plane.
+      #
+      # Two SLIs, both expressed as success ratios:
+      #
+      #   1. reconcile_success — fraction of controller-runtime Reconcile()
+      #      calls across the KEDA operator that did NOT return an error.
+      #      Target: 99% over 7d (1% error budget).
+      #
+      #   2. operator_up — fraction of scrapes where the keda-operator pod
+      #      was healthy (`up == 1`). Target: 99.9% over 7d (0.1% budget).
+      #
+      # Each SLI is recorded over four windows (5m, 1h, 6h, 7d) so we can
+      # build multi-window multi-burn-rate alerts (Google SRE workbook ch6).
+      # The alert pairs below combine a long window (1h or 6h) with a short
+      # window (5m or 1h) to suppress alerts on transient blips while still
+      # reacting fast to true budget burn.
+      #
+      # NOTE on selectors: KEDA service-endpoint scrapes land under
+      # `job="kubernetes-service-endpoints"`, so a `job=~".*keda.*"` matcher
+      # would return zero series. We key off `app_kubernetes_io_name` like
+      # every other rule in this file.
+      #
+      # NOTE on warm-up: the 7d windows return NaN until Prometheus has
+      # accumulated enough samples. That's expected on a fresh lab — the
+      # rules become valid as the lab ages.
+      - name: keda-platform-slo
+        interval: 30s
+        rules:
+          # ------------------------------------------------------------
+          # SLI 1: reconcile success ratio
+          # ------------------------------------------------------------
+          - record: keda:reconcile_success:ratio_rate5m
+            expr: |
+              1 - (
+                sum(rate(controller_runtime_reconcile_errors_total{app_kubernetes_io_name="keda-operator"}[5m]))
+                /
+                sum(rate(controller_runtime_reconcile_total{app_kubernetes_io_name="keda-operator"}[5m]))
+              )
+
+          - record: keda:reconcile_success:ratio_rate1h
+            expr: |
+              1 - (
+                sum(rate(controller_runtime_reconcile_errors_total{app_kubernetes_io_name="keda-operator"}[1h]))
+                /
+                sum(rate(controller_runtime_reconcile_total{app_kubernetes_io_name="keda-operator"}[1h]))
+              )
+
+          - record: keda:reconcile_success:ratio_rate6h
+            expr: |
+              1 - (
+                sum(rate(controller_runtime_reconcile_errors_total{app_kubernetes_io_name="keda-operator"}[6h]))
+                /
+                sum(rate(controller_runtime_reconcile_total{app_kubernetes_io_name="keda-operator"}[6h]))
+              )
+
+          - record: keda:reconcile_success:ratio_rate7d
+            expr: |
+              1 - (
+                sum(rate(controller_runtime_reconcile_errors_total{app_kubernetes_io_name="keda-operator"}[7d]))
+                /
+                sum(rate(controller_runtime_reconcile_total{app_kubernetes_io_name="keda-operator"}[7d]))
+              )
+
+          # ------------------------------------------------------------
+          # SLI 2: operator UP ratio (averaged across HA replicas)
+          # ------------------------------------------------------------
+          - record: keda:operator_up:ratio_rate5m
+            expr: avg_over_time(up{app_kubernetes_io_name="keda-operator"}[5m])
+
+          - record: keda:operator_up:ratio_rate1h
+            expr: avg_over_time(up{app_kubernetes_io_name="keda-operator"}[1h])
+
+          - record: keda:operator_up:ratio_rate6h
+            expr: avg_over_time(up{app_kubernetes_io_name="keda-operator"}[6h])
+
+          - record: keda:operator_up:ratio_rate7d
+            expr: avg_over_time(up{app_kubernetes_io_name="keda-operator"}[7d])
+
+          # ------------------------------------------------------------
+          # Burn-rate alerts (multi-window, multi-burn-rate)
+          # ------------------------------------------------------------
+          # Reconcile target: 99% / 7d  ⇒ budget = 1%
+          #   fast burn 14.4× ⇒ 0.144 error rate exhausts budget in ~12h
+          #   slow burn  6×   ⇒ 0.06  error rate exhausts budget in ~28h
+          - alert: KedaPlatformReconcileBudgetBurnFast
+            expr: |
+              (1 - keda:reconcile_success:ratio_rate1h) > 0.144
+              and
+              (1 - keda:reconcile_success:ratio_rate5m) > 0.144
+            for: 2m
+            labels:
+              severity: critical
+              component: keda-platform-slo
+              slo: reconcile_success
+            annotations:
+              summary: KEDA reconcile SLO is burning error budget fast (14.4x)
+              description: |
+                The 1h AND 5m error ratios for KEDA Reconcile() are both above
+                14.4% — at this rate the entire 7d 1% error budget is consumed
+                in ~12 hours. Short window guards against alerting on a stale
+                long window; long window guards against alerting on noise.
+                Inspect: kubectl -n platform-keda logs deploy/keda-operator
+
+          - alert: KedaPlatformReconcileBudgetBurnSlow
+            expr: |
+              (1 - keda:reconcile_success:ratio_rate6h) > 0.06
+              and
+              (1 - keda:reconcile_success:ratio_rate1h) > 0.06
+            for: 15m
+            labels:
+              severity: warning
+              component: keda-platform-slo
+              slo: reconcile_success
+            annotations:
+              summary: KEDA reconcile SLO is burning error budget slowly (6x)
+              description: |
+                The 6h AND 1h error ratios are both above 6% — at this rate
+                the 7d 1% error budget is consumed in ~28 hours. Worth
+                investigating before it escalates to a fast-burn page.
+
+          # Operator UP target: 99.9% / 7d ⇒ budget = 0.1%
+          #   fast burn 14.4× ⇒ 0.0144  exhausts budget in ~12h
+          #   slow burn  6×   ⇒ 0.006   exhausts budget in ~28h
+          - alert: KedaPlatformOperatorUpBudgetBurnFast
+            expr: |
+              (1 - keda:operator_up:ratio_rate1h) > 0.0144
+              and
+              (1 - keda:operator_up:ratio_rate5m) > 0.0144
+            for: 2m
+            labels:
+              severity: critical
+              component: keda-platform-slo
+              slo: operator_up
+            annotations:
+              summary: KEDA operator UP SLO is burning error budget fast (14.4x)
+              description: |
+                The 1h AND 5m unavailability for keda-operator scrapes are
+                both above 1.44% — at this rate the 7d 0.1% budget is gone
+                in ~12 hours. Suggests pod crash-looping, scrape failures, or
+                node loss across both replicas. Inspect: kubectl -n
+                platform-keda get pods -l app.kubernetes.io/name=keda-operator
+
+          - alert: KedaPlatformOperatorUpBudgetBurnSlow
+            expr: |
+              (1 - keda:operator_up:ratio_rate6h) > 0.006
+              and
+              (1 - keda:operator_up:ratio_rate1h) > 0.006
+            for: 15m
+            labels:
+              severity: warning
+              component: keda-platform-slo
+              slo: operator_up
+            annotations:
+              summary: KEDA operator UP SLO is burning error budget slowly (6x)
+              description: |
+                The 6h AND 1h unavailability for keda-operator scrapes are
+                both above 0.6% — at this rate the 7d 0.1% budget is gone
+                in ~28 hours. Look for flapping pods or scrape timeouts.
+
       - name: keda-control-plane
         interval: 30s
         rules:
@@ -302,6 +473,55 @@ serverFiles:
               description: |
                 Time to fetch the trigger metric exceeded 1s sustained 10m.
                 Slow trigger reads delay scaling decisions.
+
+          - alert: KedaScaledObjectAtMaxReplicas
+            expr: |
+              max by (horizontalpodautoscaler, namespace) (
+                kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler=~"keda-hpa-.*"}
+              )
+              ==
+              max by (horizontalpodautoscaler, namespace) (
+                kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler=~"keda-hpa-.*"}
+              )
+            for: 10m
+            labels:
+              severity: warning
+              component: keda
+            annotations:
+              summary: KEDA-managed HPA {{ $labels.horizontalpodautoscaler }} is at max replicas
+              description: |
+                A KEDA-managed HPA in {{ $labels.namespace }} has been pinned at
+                maxReplicaCount for 10m. Either load is genuinely above capacity,
+                or the trigger threshold is too tight. Bump maxReplicaCount or
+                tune the trigger.
+
+          - alert: KedaOperatorLeaderChurn
+            expr: |
+              changes(leader_election_master_status{name=~".*keda.*"}[10m]) > 2
+            for: 5m
+            labels:
+              severity: warning
+              component: keda
+            annotations:
+              summary: KEDA operator leader election churning
+              description: |
+                The KEDA operator leader has changed > 2 times in 10m. Reconciles
+                halt during transitions; investigate operator pod stability
+                (OOM, liveness probe, network).
+
+          - alert: KedaCertNearExpiry
+            expr: |
+              (min(certmanager_certificate_expiration_timestamp_seconds{namespace="platform-keda"}) - time()) / 86400 < 14
+            for: 1h
+            labels:
+              severity: warning
+              component: keda
+            annotations:
+              summary: A KEDA cert-manager certificate expires in < 14 days
+              description: |
+                At least one KEDA TLS cert expires in under 14 days. Renewal
+                should be automatic via cert-manager — verify by checking
+                certmanager_certificate_renewal_timestamp_seconds.
 
       - name: demo-cpu-workload
         interval: 30s

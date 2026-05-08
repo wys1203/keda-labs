@@ -310,9 +310,9 @@
     },
     {
       "type": "stat",
-      "id": 105,
-      "title": "Firing alerts",
-      "description": "KEDA + demo alerts currently firing.",
+      "id": 801,
+      "title": "Operator leader status",
+      "description": "1 = a KEDA operator pod holds the leader lease. 0 = no leader (reconciles halted).",
       "gridPos": {
         "h": 4,
         "w": 4,
@@ -325,7 +325,7 @@
       },
       "targets": [
         {
-          "expr": "count(ALERTS{alertstate=\"firing\", component=~\"keda|demo\"}) or vector(0)",
+          "expr": "sum(leader_election_master_status{name=~\".*keda.*\"})",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -335,22 +335,40 @@
       ],
       "fieldConfig": {
         "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "text": "NO LEADER",
+                  "color": "red"
+                }
+              },
+              "type": "value"
+            },
+            {
+              "options": {
+                "1": {
+                  "text": "LEADER",
+                  "color": "green"
+                }
+              },
+              "type": "value"
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
               },
               {
-                "color": "red",
+                "color": "green",
                 "value": 1
               }
             ]
           },
-          "color": {
-            "mode": "thresholds"
-          }
+          "noValue": "N/A"
         }
       },
       "options": {
@@ -430,6 +448,170 @@
       }
     },
     {
+      "type": "timeseries",
+      "id": 107,
+      "title": "Admission webhook p99 latency",
+      "description": "p99 latency of KEDA admission webhook (validates ScaledObject/ScaledJob on apply). Spikes here block kubectl apply; sustained > 1s = investigate.",
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (le, name) (rate(apiserver_admission_webhook_admission_duration_seconds_bucket{name=~\"vscaledobject.kb.io|vscaledjob.kb.io\"}[$__rate_interval])))",
+          "refId": "A",
+          "legendFormat": "{{name}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "auto"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 150,
+      "title": "Metrics API server",
+      "description": "HTTP request rate and latency for the external.metrics.k8s.io API endpoint served by the KEDA metrics-apiserver. Empty if apiserver_request_total is not exposed.",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "id": 802,
+      "title": "Metrics API server request rate by code",
+      "description": "Rate of external.metrics.k8s.io requests served by the KEDA metrics-apiserver, split by response code. Empty if KEDA metrics-apiserver doesn't expose apiserver_request_total.",
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "expr": "sum by (code) (rate(apiserver_request_total{group=\"external.metrics.k8s.io\"}[5m]))",
+          "refId": "A",
+          "legendFormat": "{{code}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "auto"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 803,
+      "title": "Metrics API server p99 latency",
+      "description": "p99 of external.metrics.k8s.io request duration. Empty if KEDA metrics-apiserver doesn't expose apiserver_request_duration_seconds.",
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(apiserver_request_duration_seconds_bucket{group=\"external.metrics.k8s.io\"}[5m])))",
+          "refId": "A",
+          "legendFormat": "p99",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "auto"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
       "type": "row",
       "id": 200,
       "title": "Resources managed",
@@ -437,7 +619,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 18
       },
       "collapsed": false,
       "panels": []
@@ -450,7 +632,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 6
+        "y": 19
       },
       "datasource": {
         "type": "prometheus",
@@ -499,7 +681,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 6
+        "y": 19
       },
       "datasource": {
         "type": "prometheus",
@@ -548,7 +730,7 @@
         "h": 4,
         "w": 4,
         "x": 8,
-        "y": 6
+        "y": 19
       },
       "datasource": {
         "type": "prometheus",
@@ -598,7 +780,7 @@
         "h": 4,
         "w": 4,
         "x": 12,
-        "y": 6
+        "y": 19
       },
       "datasource": {
         "type": "prometheus",
@@ -652,7 +834,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 6
+        "y": 19
       },
       "datasource": {
         "type": "prometheus",
@@ -692,7 +874,7 @@
         "h": 8,
         "w": 16,
         "x": 0,
-        "y": 10
+        "y": 23
       },
       "datasource": {
         "type": "prometheus",
@@ -734,6 +916,199 @@
       }
     },
     {
+      "type": "timeseries",
+      "id": 207,
+      "title": "CRD churn rate",
+      "description": "Rate of KEDA CR registrations by type. Sustained non-zero with steady total = GitOps loop creating/deleting.",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 23
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "expr": "sum by (type) (rate(keda_resource_registered_total[$__rate_interval]))",
+          "refId": "A",
+          "legendFormat": "{{type}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "none"
+            }
+          },
+          "min": 0
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 250,
+      "title": "Workload outcomes",
+      "description": "HPA replica state for all KEDA-managed HPAs. Current vs desired vs max replicas.",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "table",
+      "id": 804,
+      "title": "KEDA-managed HPAs \u2014 replica state",
+      "description": "Per KEDA-managed HPA: current vs desired vs max replicas. Filtered by HPA name regex `keda-hpa-.*` (KEDA prefixes all generated HPAs).",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "expr": "max by (horizontalpodautoscaler, namespace) (kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\"})",
+          "refId": "current",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        },
+        {
+          "expr": "max by (horizontalpodautoscaler, namespace) (kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\"})",
+          "refId": "desired",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        },
+        {
+          "expr": "max by (horizontalpodautoscaler, namespace) (kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\"})",
+          "refId": "max",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Time 1": true,
+              "Time 2": true,
+              "Time 3": true,
+              "__name__": true,
+              "instance": true,
+              "job": true,
+              "endpoint": true,
+              "service": true,
+              "container": true,
+              "pod": true,
+              "prometheus": true,
+              "exported_namespace": true
+            },
+            "renameByName": {
+              "Value #current": "current",
+              "Value #desired": "desired",
+              "Value #max": "max"
+            },
+            "indexByName": {
+              "horizontalpodautoscaler": 0,
+              "namespace": 1,
+              "current": 2,
+              "desired": 3,
+              "max": 4
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "current"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 5
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
       "type": "row",
       "id": 300,
       "title": "Reconcile health",
@@ -741,7 +1116,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 40
       },
       "collapsed": false,
       "panels": []
@@ -755,7 +1130,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 19
+        "y": 41
       },
       "datasource": {
         "type": "prometheus",
@@ -795,7 +1170,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 19
+        "y": 41
       },
       "datasource": {
         "type": "prometheus",
@@ -834,7 +1209,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 27
+        "y": 49
       },
       "datasource": {
         "type": "prometheus",
@@ -895,7 +1270,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 27
+        "y": 49
       },
       "datasource": {
         "type": "prometheus",
@@ -934,7 +1309,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 35
+        "y": 57
       },
       "collapsed": false,
       "panels": []
@@ -948,7 +1323,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 36
+        "y": 58
       },
       "datasource": {
         "type": "prometheus",
@@ -1023,7 +1398,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 36
+        "y": 58
       },
       "datasource": {
         "type": "prometheus",
@@ -1065,7 +1440,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 44
+        "y": 66
       },
       "datasource": {
         "type": "prometheus",
@@ -1127,7 +1502,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 44
+        "y": 66
       },
       "datasource": {
         "type": "prometheus",
@@ -1166,7 +1541,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 52
+        "y": 74
       },
       "collapsed": false,
       "panels": []
@@ -1180,7 +1555,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 53
+        "y": 75
       },
       "datasource": {
         "type": "prometheus",
@@ -1220,7 +1595,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 53
+        "y": 75
       },
       "datasource": {
         "type": "prometheus",
@@ -1259,7 +1634,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 61
+        "y": 83
       },
       "datasource": {
         "type": "prometheus",
@@ -1299,7 +1674,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 61
+        "y": 83
       },
       "datasource": {
         "type": "prometheus",
@@ -1338,7 +1713,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 69
+        "y": 91
       },
       "collapsed": true,
       "panels": [
@@ -1480,7 +1855,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 70
+        "y": 92
       },
       "collapsed": true,
       "panels": [
@@ -2494,6 +2869,384 @@
           }
         }
       ]
+    },
+    {
+      "type": "row",
+      "id": 700,
+      "title": "Cert-manager certificates",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 93
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "id": 701,
+      "title": "Days until cert expiry (min)",
+      "description": "Minimum days remaining across KEDA cert-manager certificates. Red <7, yellow <30, green >=30.",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 94
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "expr": "(min(certmanager_certificate_expiration_timestamp_seconds{namespace=\"platform-keda\"}) - time()) / 86400",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 7
+              },
+              {
+                "color": "green",
+                "value": 30
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "N/A"
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "id": 702,
+      "title": "Certs not Ready",
+      "description": "Number of KEDA cert-manager certificates with Ready != True. Should be 0.",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 94
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "expr": "count(certmanager_certificate_ready_status{condition=\"True\", namespace=\"platform-keda\"} == 0) or on() vector(0)",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "N/A"
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "type": "table",
+      "id": 703,
+      "title": "KEDA certs \u2014 expiry detail",
+      "description": "Per-certificate expiry, renewal, and Ready status.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 94
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "expr": "(certmanager_certificate_expiration_timestamp_seconds{namespace=\"platform-keda\"} - time()) / 86400",
+          "refId": "expires_in_days",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        },
+        {
+          "expr": "(certmanager_certificate_renewal_timestamp_seconds{namespace=\"platform-keda\"} - time()) / 86400",
+          "refId": "renews_in_days",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        },
+        {
+          "expr": "max by (name, namespace) (certmanager_certificate_ready_status{condition=\"True\", namespace=\"platform-keda\"})",
+          "refId": "ready",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Time 1": true,
+              "Time 2": true,
+              "Time 3": true,
+              "__name__": true,
+              "condition": true,
+              "issuer_group": true,
+              "issuer_kind": true,
+              "issuer_name": true,
+              "instance": true,
+              "job": true,
+              "endpoint": true,
+              "service": true,
+              "container": true,
+              "pod": true,
+              "prometheus": true,
+              "exported_namespace": true
+            },
+            "renameByName": {
+              "Value #expires_in_days": "expires_in_days",
+              "Value #renews_in_days": "renews_in_days",
+              "Value #ready": "ready"
+            },
+            "indexByName": {
+              "name": 0,
+              "namespace": 1,
+              "expires_in_days": 2,
+              "renews_in_days": 3,
+              "ready": 4
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "expires_in_days"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "d"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 7
+                    },
+                    {
+                      "color": "green",
+                      "value": 30
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "renews_in_days"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "d"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ready"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "Ready",
+                        "color": "green",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "NOT READY",
+                        "color": "red",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 704,
+      "title": "Days to expiry over time",
+      "description": "Per-cert days-to-expiry. Lines should jump up at renewal.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 98
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "expr": "(certmanager_certificate_expiration_timestamp_seconds{namespace=\"platform-keda\"} - time()) / 86400",
+          "refId": "A",
+          "legendFormat": "{{name}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "decimals": 1,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "auto"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
     }
   ],
   "refresh": "30s",
@@ -2589,6 +3342,6 @@
   "timezone": "",
   "title": "KEDA Operations",
   "uid": "keda-operations",
-  "version": 6,
+  "version": 11,
   "weekStart": ""
 }

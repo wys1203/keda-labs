@@ -29,6 +29,13 @@ helm upgrade --install "${PROMETHEUS_RELEASE}" prometheus-community/prometheus \
 # the chart values).
 kubectl label namespace "${MONITORING_NAMESPACE}" prodsuite=Platform --overwrite >/dev/null
 
+# Apply the stdout alert sink (Alertmanager webhook receiver). Pure-stdlib
+# Python pod that prints firing alerts to its log — no PagerDuty/Slack needed
+# for the lab. Alertmanager config in values.yaml routes here.
+log "applying alert-stdout-sink"
+kubectl apply -f "${ROOT_DIR}/manifests/alert-stdout-sink.yaml" >/dev/null
+kubectl_wait_rollout "${MONITORING_NAMESPACE}" deployment/alert-stdout-sink
+
 # The configmap-reload sidecar can race with the new Prometheus pod on
 # helm-upgrade: the new pod sometimes mounts the previous configmap snapshot
 # and never sees an inotify event for the rules change. Force a fresh roll
