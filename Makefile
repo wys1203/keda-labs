@@ -11,7 +11,8 @@ LOAD_REPLICAS ?= 1
 
 .PHONY: help up down recreate status verify verify-monitoring demo load-test grafana prometheus alertmanager logs \
 	prereqs create-cluster label-zones prepull-images install-metrics-server install-prometheus \
-	install-cert-manager install-keda install-grafana install-monitoring
+	install-cert-manager install-keda install-grafana install-monitoring \
+	build-webhook install-webhook verify-webhook demo-deprecated
 
 help:
 	@printf "\nKEDA kind lab shortcuts\n\n"
@@ -21,7 +22,9 @@ help:
 	@printf "  %-22s %s\n" "make status" "Show cluster and workload status"
 	@printf "  %-22s %s\n" "make verify" "Run post-install verification checks"
 	@printf "  %-22s %s\n" "make verify-monitoring" "Run monitoring stack verification checks"
+	@printf "  %-22s %s\n" "make verify-webhook" "Run keda-deprecation-webhook E2E checks"
 	@printf "  %-22s %s\n" "make demo" "Deploy the CPU demo workload"
+	@printf "  %-22s %s\n" "make demo-deprecated" "Apply a deliberately-deprecated SO (expects rejection)"
 	@printf "  %-22s %s\n" "make load-test" "Run a temporary CPU spike against the demo"
 	@printf "  %-22s %s\n" "make grafana" "Port-forward Grafana to localhost"
 	@printf "  %-22s %s\n" "make prometheus" "Port-forward Prometheus to localhost"
@@ -96,3 +99,18 @@ install-grafana:
 
 install-monitoring:
 	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/install-monitoring.sh
+
+build-webhook:
+	@docker build -t keda-deprecation-webhook:dev -f Dockerfile .
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/install-webhook.sh
+
+install-webhook:
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/install-webhook.sh
+
+verify-webhook:
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/verify-webhook.sh
+
+demo-deprecated:
+	@kubectl apply -f manifests/demo-deprecated/namespace.yaml
+	@kubectl apply -f manifests/demo-deprecated/deployment.yaml
+	@kubectl apply -f manifests/demo-deprecated/scaledobject.yaml || true   # expected to be rejected
