@@ -210,7 +210,7 @@ func (h *Handler) decide(req *admission.Request, oldT, newT *Target) admission.R
         oldV = rules.LintAll(*oldT)
     }
 
-    added := diffByKey(newV, oldV)        // key = (RuleID, TriggerIndex, Field)
+    added := diffByKey(newV, oldV)        // key = (RuleID, TriggerType, Field)
 
     // Reject only when CREATE has any error-severity violation,
     // or UPDATE adds a new error-severity violation.
@@ -241,7 +241,9 @@ func (h *Handler) decide(req *admission.Request, oldT, newT *Target) admission.R
 }
 ```
 
-The diff key `(RuleID, TriggerIndex, Field)` ensures that "user changes `trigger[0]` from cpu→memory but both still use `metadata.type`" is treated as a continued violation of the same key, not a new one, and isn't rejected.
+The diff key is `(RuleID, TriggerType, Field)`. `TriggerIndex` is deliberately **not** part of the key: rejecting an UPDATE solely because the user reordered `triggers[]` would punish movement that doesn't introduce new debt. Trade-off: if a user changes `triggers[0]` from `cpu` to `memory` while keeping `metadata.type`, the violation's `TriggerType` changes from `cpu` to `memory` — that key *will* be classified as added and the UPDATE will be rejected. This is the desired behaviour: the user introduced a deprecated `metadata.type` on a trigger that didn't have one before, regardless of index.
+
+`TriggerIndex` is still present on the `Violation` struct for the purpose of metric labels, warning messages, and rejection messages — it's only excluded from the additive-only diff key.
 
 ### Controller reconcile loop
 
@@ -251,6 +253,29 @@ The diff key `(RuleID, TriggerIndex, Field)` ensures that "user changes `trigger
 - On object deletion: clear the gauge labels for that object.
 - Watches `ConfigMap` in own namespace; on CM change, trigger a re-lint of all watched objects (so gauge `severity` labels reflect the new effective severity within the same reconcile cycle).
 - Watches `Namespace`; on namespace label change, re-lint affected objects.
+
+#### Gauge label-set bookkeeping (avoid ghost series on severity flip)
+
+The `severity` label is part of the gauge's series identity, so a violation whose effective severity flips (e.g. CM hot-reload moves a namespace from `error` → `warn`) would otherwise leave the prior `severity="error"` series asserted at `1` forever — observable in dashboards as ghost violations.
+
+The reconciler maintains a per-object map of last-emitted label sets:
+
+```go
+// keyed by client.ObjectKey of the SO/SJ; value is the set of
+// full label maps the reconciler asserted on its previous pass.
+lastLabels map[types.NamespacedName][]prometheus.Labels
+```
+
+On each reconcile pass for an object:
+
+1. Compute the new set of label maps from the current lint + config resolution.
+2. For every label map in `lastLabels[obj]` that is **not** in the new set, call `gauge.DeleteLabelValues(...)`.
+3. For every label map in the new set, call `gauge.With(...).Set(1)`.
+4. Replace `lastLabels[obj]` with the new set.
+
+On object deletion: delete every label map in `lastLabels[obj]`, then drop the entry.
+
+This keeps gauge state exactly equal to the cluster's current violation set after every CM reload, namespace label change, or trigger edit — no ghost series, no double-counting, and no need to enumerate "all possible severity values" defensively.
 
 ---
 
@@ -273,7 +298,7 @@ keda_deprecation_violations{
 ```
 
 - One time series per violation. Value is always `1` (presence).
-- Lifecycle: controller calls `DeleteLabelValues(...)` when the object is deleted or when re-lint shows the violation gone.
+- Lifecycle: controller calls `DeleteLabelValues(...)` for every label map that was emitted on the previous reconcile but is no longer in the current label set (object deleted, violation gone, OR effective severity flipped). See *Gauge label-set bookkeeping* above.
 - Cardinality bound: `sum_over_objects(violating_triggers)`. Bounded by ScaledObject count × triggers-per-object × rules. For a fleet with thousands of SOs, expect low thousands of series.
 - `severity="off"` series are still emitted so that a dashboard can show fleet-wide debt even in exempted namespaces. Default Grafana queries filter `severity != "off"`.
 
@@ -672,7 +697,9 @@ The CM-based design means **enforcement level is decoupled from binary release**
 - CREATE in `error` namespace → admission rejected (with rule ID and fix hint in the message).
 - CREATE in `warn` namespace → allowed; `AdmissionResponse.Warnings` populated.
 - UPDATE on existing-bad object that doesn't add a violation → allowed + warning.
+- UPDATE that only **reorders** existing-bad triggers (changes `TriggerIndex` but not `TriggerType`/`Field` of any violation) → allowed + warning. Pins the diff-key choice.
 - UPDATE that adds a violation → rejected.
+- CM hot-reload that flips a namespace from `error` to `warn` → after one reconcile cycle, `keda_deprecation_violations{...,severity="error"}` for that namespace is **deleted** and only `severity="warn"` remains. Pins the gauge label-set bookkeeping.
 - After admission, `/metrics` exposes the expected series.
 
 **Lab E2E:** `make verify-webhook` runs the demo workloads and asserts the expected `kubectl` outputs and metric values.
