@@ -1,0 +1,20 @@
+# Deliberately uses the DEPRECATED `metadata.type` form. Applied via
+# `make demo-deprecated` after the webhook is up; expected to be
+# REJECTED by the webhook (KEDA001, severity=error in this namespace).
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: cpu-deprecated
+  namespace: demo-deprecated
+spec:
+  scaleTargetRef:
+    name: cpu-deprecated
+  pollingInterval: 15
+  cooldownPeriod: 30
+  minReplicaCount: 1
+  maxReplicaCount: 6
+  triggers:
+    - type: cpu
+      metadata:
+        type: Utilization
+        value: "50"
