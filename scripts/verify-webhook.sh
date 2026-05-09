@@ -12,11 +12,12 @@ DEMO_NS="demo-deprecated"
 
 # Curl helper: spin up a one-shot curlimages/curl pod inside the cluster
 # (so we don't depend on local connectivity), run the requested command,
-# and capture stdout. `--rm --restart=Never` cleans up the pod after run.
+# and capture stdout. `--attach --rm --restart=Never` waits for completion
+# and cleans up the pod. `-i` keeps stdin attached so kubectl exits cleanly.
 kdw_curl() {
   local url="$1"
-  kubectl -n "${KDW_NS}" run kdw-curl-$$ \
-    --rm --restart=Never --quiet \
+  kubectl -n "${KDW_NS}" run "kdw-curl-$$-${RANDOM}" \
+    --attach --rm --restart=Never -i --quiet \
     --image=curlimages/curl:8.10.1 \
     --command -- curl -fsS "${url}"
 }
