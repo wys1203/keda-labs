@@ -12,7 +12,6 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["configmaps"]
-    resourceNames: ["keda-deprecation-webhook-config"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["events"]

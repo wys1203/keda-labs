@@ -13,6 +13,8 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -69,6 +71,15 @@ func main() {
 			Port:    *webhookPort,
 			CertDir: *certDir,
 		}),
+		// Restrict ConfigMap watches to the webhook's own namespace to avoid
+		// cluster-wide LIST which the namespace-scoped Role cannot authorize.
+		Cache: cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
+				&corev1.ConfigMap{}: {
+					Namespaces: map[string]cache.Config{ns: {}},
+				},
+			},
+		},
 	})
 	if err != nil {
 		ctrl.Log.Error(err, "manager init failed")
