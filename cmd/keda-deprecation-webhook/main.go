@@ -3,6 +3,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -121,7 +122,12 @@ func main() {
 		ctrl.Log.Error(err, "healthz setup")
 		os.Exit(1)
 	}
-	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+	if err := mgr.AddReadyzCheck("readyz", func(_ *http.Request) error {
+		if store.Generation() == 0 {
+			return fmt.Errorf("config not yet loaded")
+		}
+		return nil
+	}); err != nil {
 		ctrl.Log.Error(err, "readyz setup")
 		os.Exit(1)
 	}
