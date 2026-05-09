@@ -10,6 +10,7 @@ Reusable kind lab for KEDA experiments on Kubernetes `1.24.17` with:
 - Grafana `11` provisioned with dashboards for the monitoring stack, KEDA control-plane health, and demo CPU autoscaling
 - KEDA-specific alert rules (component down, reconcile errors, adapter↔operator gRPC errors, scaler errors, demo HPA pinned at max, demo pods Pending)
 - Two demo workloads — one with a CPU (resource) trigger, one with a Prometheus (external) trigger — so every KEDA metric path is exercised
+- `keda-deprecation-webhook` (KDW) — a ValidatingWebhook + controller that blocks/inventories deprecated KEDA spec fields ahead of the 2.16 → 2.18 fleet upgrade (KEDA001 = cpu/memory `metadata.type`). Lab CM exempts the existing `legacy-cpu` namespace to `severity: warn`
 
 ## Prerequisites
 
@@ -45,7 +46,33 @@ make prometheus     # port-forward Prometheus to :9090
 make alertmanager   # port-forward Alertmanager to :9093
 make logs           # tail KEDA + demo logs
 make down           # tear the cluster down
+make verify-webhook # E2E checks for keda-deprecation-webhook
+make demo-deprecated# apply a deliberately-deprecated SO (expects KDW rejection)
 ```
+
+## keda-deprecation-webhook (KDW)
+
+A ValidatingWebhook + controller that blocks/inventories deprecated KEDA spec
+fields ahead of the 2.16 → 2.18 fleet upgrade. KEDA001 (cpu/memory
+`metadata.type`) is the first rule shipped.
+
+- **Spec:** `docs/superpowers/specs/2026-05-05-keda-deprecation-webhook-design.md`
+- **Plan:** `docs/superpowers/plans/2026-05-09-keda-deprecation-webhook.md`
+- **Manifests:** `manifests/keda-deprecation-webhook/`
+- **Lab CM** (`manifests/keda-deprecation-webhook/configmap.yaml`) defaults
+  `KEDA001` to `severity: error` and exempts the `legacy-cpu` namespace to
+  `severity: warn` so the existing deprecated SO demonstrates the warn-mode
+  code path without being permanently blocked.
+- **Reject-mode demo:** `make demo-deprecated` — applies a deliberately
+  deprecated SO in the `demo-deprecated` namespace; expected to be rejected
+  by the webhook with an explanatory message.
+- **Dashboard:** Grafana → **KEDA Deprecations** (UID `keda-deprecations`).
+- **Alerts:** `KedaDeprecationWebhookDown`, `KedaDeprecationConfigReloadFailing`,
+  `KedaDeprecationErrorViolationsPresent` (group `keda-deprecations`).
+- **E2E:** `make verify-webhook` — spins up an in-cluster curl pod, hits
+  `/metrics`, exercises CREATE rejection in `demo-deprecated`, asserts the
+  warn-mode gauge for `legacy-cpu`, and verifies the gauge series cleanup
+  on a CM hot-reload that flips `legacy-cpu` to `severity: "off"`.
 
 ## Monitoring
 
