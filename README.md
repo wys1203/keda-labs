@@ -58,6 +58,7 @@ fields ahead of the 2.16 → 2.18 fleet upgrade. KEDA001 (cpu/memory
 
 - **Spec:** `docs/superpowers/specs/2026-05-05-keda-deprecation-webhook-design.md`
 - **Plan:** `docs/superpowers/plans/2026-05-09-keda-deprecation-webhook.md`
+- **操作手冊(繁中):** `docs/keda-deprecation-webhook-zh-TW.md`
 - **Manifests:** `manifests/keda-deprecation-webhook/`
 - **Lab CM** (`manifests/keda-deprecation-webhook/configmap.yaml`) defaults
   `KEDA001` to `severity: error` and exempts the `legacy-cpu` namespace to
