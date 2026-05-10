@@ -59,8 +59,8 @@ fields ahead of the 2.16 → 2.18 fleet upgrade. KEDA001 (cpu/memory
 - **Spec:** `docs/superpowers/specs/2026-05-05-keda-deprecation-webhook-design.md`
 - **Plan:** `docs/superpowers/plans/2026-05-09-keda-deprecation-webhook.md`
 - **操作手冊(繁中):** `docs/keda-deprecation-webhook-zh-TW.md`
-- **Manifests:** `manifests/keda-deprecation-webhook/`
-- **Lab CM** (`manifests/keda-deprecation-webhook/configmap.yaml`) defaults
+- **Manifests:** `kdw/manifests/deploy/`
+- **Lab CM** (`kdw/manifests/deploy/configmap.yaml`) defaults
   `KEDA001` to `severity: error` and exempts the `legacy-cpu` namespace to
   `severity: warn` so the existing deprecated SO demonstrates the warn-mode
   code path without being permanently blocked.
@@ -79,7 +79,7 @@ fields ahead of the 2.16 → 2.18 fleet upgrade. KEDA001 (cpu/memory
 
 ### Prometheus targets
 
-`keda/values.yaml` enables `prometheus.<operator|metricServer|webhooks>.enabled`,
+`lab/keda/values.yaml` enables `prometheus.<operator|metricServer|webhooks>.enabled`,
 which makes the chart annotate the three KEDA Services with
 `prometheus.io/scrape=true`. The upstream prometheus-community chart's
 `kubernetes-service-endpoints` scrape job picks them up automatically.
@@ -100,7 +100,7 @@ You should see one healthy `up==1` target each for `keda-operator`,
 > Deployment whenever `prometheus.metricServer.enabled=true`, which made the
 > `kubernetes-pods` job scrape it on top of the canonical
 > `kubernetes-service-endpoints` scrape and double-counted every gRPC client
-> series. `keda/values.yaml` overrides that pod annotation back to `"false"`
+> series. `lab/keda/values.yaml` overrides that pod annotation back to `"false"`
 > so only one job scrapes each component, and queries can stay job-agnostic.
 
 ### Why two demo workloads
@@ -109,8 +109,8 @@ KEDA emits two distinct families of metrics depending on the trigger type:
 
 | Trigger family | Examples | Path through KEDA | Metrics that populate |
 | --- | --- | --- | --- |
-| Resource (cpu, memory) | `manifests/demo-cpu` | KEDA creates an HPA with a `Resource` metric source. metrics-server feeds the HPA directly — KEDA's adapter is **not** in the loop. | `keda_resource_registered_total`, `keda_scaled_object_*`, `controller_runtime_*`, `workqueue_*` |
-| External (prometheus, kafka, ...) | `manifests/demo-prom` | KEDA creates an HPA with an `External` metric source. The kube-apiserver routes that to KEDA's metrics-apiserver, which calls the operator over gRPC. | All of the above **plus** `keda_scaler_*` and `keda_internal_metricsservice_grpc_*` (server + client side) |
+| Resource (cpu, memory) | `lab/manifests/demo-cpu` | KEDA creates an HPA with a `Resource` metric source. metrics-server feeds the HPA directly — KEDA's adapter is **not** in the loop. | `keda_resource_registered_total`, `keda_scaled_object_*`, `controller_runtime_*`, `workqueue_*` |
+| External (prometheus, kafka, ...) | `lab/manifests/demo-prom` | KEDA creates an HPA with an `External` metric source. The kube-apiserver routes that to KEDA's metrics-apiserver, which calls the operator over gRPC. | All of the above **plus** `keda_scaler_*` and `keda_internal_metricsservice_grpc_*` (server + client side) |
 
 Both are deployed by `make demo` (and `make up`). The Prometheus-trigger
 demo's query reads the cpu-demo's CPU usage, so a single
@@ -119,7 +119,7 @@ panel on *KEDA Operations*.
 
 ### Grafana dashboards
 
-Three dashboards are provisioned from `grafana/dashboards/`:
+Three dashboards are provisioned from `lab/grafana/dashboards/` (lab core) and `kdw/dashboard.json` (KDW):
 
 | UID | Title | Use it for |
 | --- | --- | --- |
@@ -149,7 +149,7 @@ The lab labels:
 
 Add a label to any other namespace (`kubectl label ns foo prodsuite=Bar`) and
 it shows up in the picker on next refresh — kube-state-metrics' allowlist
-already includes the `prodsuite` key (see `prometheus/values.yaml`).
+already includes the `prodsuite` key (see `lab/prometheus/values.yaml`).
 
 #### Switching between clusters
 
@@ -165,7 +165,7 @@ appear in the picker on the next reload.
 
 ### Alerts
 
-`prometheus/values.yaml` ships three rule groups:
+`lab/prometheus/values.yaml` ships three rule groups:
 
 - `keda-control-plane` — `KedaOperatorDown`, `KedaMetricsApiServerDown`,
   `KedaAdmissionWebhooksDown`, `KedaReconcileErrors`, `KedaWorkqueueBacklog`,
@@ -198,8 +198,8 @@ After ~10 minutes at max replicas, `DemoCpuAtMaxReplicas` transitions
 
 - `make up` installs metrics-server, Prometheus, Alertmanager, kube-state-metrics,
   node-exporter, Grafana, cert-manager, and KEDA, then deploys the CPU demo
-  workload. cert-manager is installed by `scripts/install-keda.sh` because
-  KEDA's chart (`keda/values.yaml`) routes its TLS through cert-manager.
+  workload. cert-manager is installed by `lab/scripts/install-keda.sh` because
+  KEDA's chart (`lab/keda/values.yaml`) routes its TLS through cert-manager.
 - `make prepull-images` (also run automatically by `make up` after
   `create-cluster`) renders every chart with the same values the installer
   uses, dedupes the resulting `image:` references, `docker pull`s each one
@@ -215,6 +215,6 @@ After ~10 minutes at max replicas, `DemoCpuAtMaxReplicas` transitions
   namespace (`prodsuite=legacy`) hosts a workload using the **deprecated**
   CPU-trigger form (`metadata.type: Utilization`) — it's the known offender
   the `keda-deprecation-webhook` spec is designed to inventory and block.
-- Helm values live next to the install scripts: `keda/values.yaml`,
-  `prometheus/values.yaml`, `grafana/values.yaml`. Edit those, then re-run the
+- Helm values live next to the install scripts: `lab/keda/values.yaml`,
+  `lab/prometheus/values.yaml`, `lab/grafana/values.yaml`. Edit those, then re-run the
   matching `make install-*` target — no full cluster recreate needed.
