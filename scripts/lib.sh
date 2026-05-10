@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LAB_DIR="${ROOT_DIR}/lab"
+KDW_DIR="${ROOT_DIR}/kdw"
 CLUSTER_NAME="${CLUSTER_NAME:-keda-lab}"
 KEDA_NAMESPACE="${KEDA_NAMESPACE:-platform-keda}"
 CERT_MANAGER_NAMESPACE="${CERT_MANAGER_NAMESPACE:-cert-manager}"
@@ -52,7 +54,7 @@ wait_for_nodes_ready() {
   local expected_count
   local actual_count
 
-  expected_count="$(awk '/^[[:space:]]*-[[:space:]]role:/ { count++ } END { print count + 0 }' "${ROOT_DIR}/kind/cluster.yaml")"
+  expected_count="$(awk '/^[[:space:]]*-[[:space:]]role:/ { count++ } END { print count + 0 }' "${LAB_DIR}/kind/cluster.yaml")"
   [[ "${expected_count}" -gt 0 ]] || expected_count=1
 
   log "waiting for ${expected_count} kind node(s) to register"

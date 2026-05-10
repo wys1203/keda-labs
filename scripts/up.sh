@@ -2,13 +2,14 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 "${SCRIPT_DIR}/prereq-check.sh"
-"${SCRIPT_DIR}/create-cluster.sh"
-"${SCRIPT_DIR}/label-zones.sh"
-"${SCRIPT_DIR}/prepull-images.sh"
-"${SCRIPT_DIR}/install-monitoring.sh"
-"${SCRIPT_DIR}/install-keda.sh"
-"${SCRIPT_DIR}/install-webhook.sh"
-"${SCRIPT_DIR}/deploy-demo.sh"
+"${ROOT_DIR}/lab/scripts/create-cluster.sh"
+"${ROOT_DIR}/lab/scripts/label-zones.sh"
+"${ROOT_DIR}/lab/scripts/prepull-images.sh"
+"${ROOT_DIR}/lab/scripts/install-monitoring.sh"
+"${ROOT_DIR}/lab/scripts/install-keda.sh"
+"${ROOT_DIR}/kdw/scripts/install-webhook.sh"
+"${ROOT_DIR}/lab/scripts/deploy-demo.sh"
 "${SCRIPT_DIR}/verify.sh"
