@@ -9,9 +9,15 @@ LOAD_REPLICAS ?= 1
 
 .DEFAULT_GOAL := help
 
+# Layout:
+#   scripts/      — orchestrators that span lab + kdw (up, down, status, port-forwards, lib.sh)
+#   lab/scripts/  — lab-core install/verify (KEDA, monitoring, demos)
+#   kdw/scripts/  — keda-deprecation-webhook install/verify
+
 .PHONY: help up down recreate status verify verify-monitoring demo load-test grafana prometheus alertmanager logs \
 	prereqs create-cluster label-zones prepull-images install-metrics-server install-prometheus \
-	install-cert-manager install-keda install-grafana install-monitoring
+	install-cert-manager install-keda install-grafana install-monitoring \
+	build-webhook install-webhook verify-webhook demo-deprecated
 
 help:
 	@printf "\nKEDA kind lab shortcuts\n\n"
@@ -21,7 +27,9 @@ help:
 	@printf "  %-22s %s\n" "make status" "Show cluster and workload status"
 	@printf "  %-22s %s\n" "make verify" "Run post-install verification checks"
 	@printf "  %-22s %s\n" "make verify-monitoring" "Run monitoring stack verification checks"
+	@printf "  %-22s %s\n" "make verify-webhook" "Run keda-deprecation-webhook E2E checks"
 	@printf "  %-22s %s\n" "make demo" "Deploy the CPU demo workload"
+	@printf "  %-22s %s\n" "make demo-deprecated" "Apply a deliberately-deprecated SO (expects rejection)"
 	@printf "  %-22s %s\n" "make load-test" "Run a temporary CPU spike against the demo"
 	@printf "  %-22s %s\n" "make grafana" "Port-forward Grafana to localhost"
 	@printf "  %-22s %s\n" "make prometheus" "Port-forward Prometheus to localhost"
@@ -30,6 +38,7 @@ help:
 	@printf "\nVariables: CLUSTER_NAME=%s GRAFANA_PORT=%s PROMETHEUS_PORT=%s ALERTMANAGER_PORT=%s LOAD_DURATION=%s LOAD_REPLICAS=%s\n\n" \
 		"$(CLUSTER_NAME)" "$(GRAFANA_PORT)" "$(PROMETHEUS_PORT)" "$(ALERTMANAGER_PORT)" "$(LOAD_DURATION)" "$(LOAD_REPLICAS)"
 
+# --- Orchestrator (lifecycle + cross-component) ---
 up:
 	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/up.sh
 
@@ -46,15 +55,13 @@ status:
 verify:
 	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/verify.sh
 
-verify-monitoring:
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/verify-monitoring.sh
+logs:
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/logs.sh
 
-demo:
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/deploy-demo.sh
+prereqs:
+	@./scripts/prereq-check.sh
 
-load-test:
-	@CLUSTER_NAME=$(CLUSTER_NAME) LOAD_DURATION=$(LOAD_DURATION) LOAD_REPLICAS=$(LOAD_REPLICAS) ./scripts/load-test.sh
-
+# --- Port-forwards (orchestrator) ---
 grafana:
 	@CLUSTER_NAME=$(CLUSTER_NAME) GRAFANA_PORT=$(GRAFANA_PORT) ./scripts/port-forward-grafana.sh
 
@@ -64,35 +71,55 @@ prometheus:
 alertmanager:
 	@CLUSTER_NAME=$(CLUSTER_NAME) ALERTMANAGER_PORT=$(ALERTMANAGER_PORT) ./scripts/port-forward-alertmanager.sh
 
-logs:
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/logs.sh
-
-prereqs:
-	@./scripts/prereq-check.sh
-
+# --- Lab core (lab/scripts/) ---
 create-cluster:
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/create-cluster.sh
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./lab/scripts/create-cluster.sh
 
 label-zones:
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/label-zones.sh
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./lab/scripts/label-zones.sh
 
 prepull-images:
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/prepull-images.sh
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./lab/scripts/prepull-images.sh
 
 install-metrics-server:
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/install-metrics-server.sh
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./lab/scripts/install-metrics-server.sh
 
 install-prometheus:
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/install-prometheus.sh
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./lab/scripts/install-prometheus.sh
 
 install-cert-manager:
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/install-cert-manager.sh
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./lab/scripts/install-cert-manager.sh
 
 install-keda:
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/install-keda.sh
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./lab/scripts/install-keda.sh
 
 install-grafana:
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/install-grafana.sh
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./lab/scripts/install-grafana.sh
 
 install-monitoring:
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./scripts/install-monitoring.sh
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./lab/scripts/install-monitoring.sh
+
+verify-monitoring:
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./lab/scripts/verify-monitoring.sh
+
+demo:
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./lab/scripts/deploy-demo.sh
+
+load-test:
+	@CLUSTER_NAME=$(CLUSTER_NAME) LOAD_DURATION=$(LOAD_DURATION) LOAD_REPLICAS=$(LOAD_REPLICAS) ./scripts/load-test.sh
+
+# --- KDW (kdw/scripts/) ---
+build-webhook:
+	@docker build -t keda-deprecation-webhook:dev -f kdw/Dockerfile kdw
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./kdw/scripts/install-webhook.sh
+
+install-webhook:
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./kdw/scripts/install-webhook.sh
+
+verify-webhook:
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./kdw/scripts/verify-webhook.sh
+
+demo-deprecated:
+	@kubectl apply -f kdw/demo/demo-deprecated/namespace.yaml
+	@kubectl apply -f kdw/demo/demo-deprecated/deployment.yaml
+	@kubectl apply -f kdw/demo/demo-deprecated/scaledobject.yaml || true   # expected to be rejected
