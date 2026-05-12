@@ -269,7 +269,9 @@ serverFiles:
             for: 5m
             labels:
               severity: critical
-              component: keda
+              tier: "2"
+              component: keda-operator
+              audience: platform
             annotations:
               summary: KEDA operator is not being scraped or is down
               description: |
@@ -282,7 +284,9 @@ serverFiles:
             for: 5m
             labels:
               severity: critical
-              component: keda
+              tier: "2"
+              component: keda-metrics-apiserver
+              audience: platform
             annotations:
               summary: KEDA metrics API server is not being scraped or is down
               description: |
@@ -295,28 +299,14 @@ serverFiles:
             for: 10m
             labels:
               severity: warning
-              component: keda
+              tier: "2"
+              component: keda-admission-webhooks
+              audience: platform
             annotations:
               summary: KEDA admission webhook is not being scraped or is down
               description: |
                 The admission webhook validates ScaledObject/ScaledJob CRs on
                 apply. With it down, mistakes only surface at runtime.
-
-          - alert: KedaReconcileErrors
-            expr: |
-              sum by (controller) (
-                rate(controller_runtime_reconcile_errors_total{app_kubernetes_io_name="keda-operator"}[5m])
-              ) > 0
-            for: 10m
-            labels:
-              severity: warning
-              component: keda
-            annotations:
-              summary: KEDA controller {{ $labels.controller }} is reporting reconcile errors
-              description: |
-                controller-runtime is returning errors from Reconcile() for
-                {{ $labels.controller }}. Check `kubectl -n platform-keda logs` on the
-                operator for the underlying cause.
 
           - alert: KedaWorkqueueBacklog
             expr: |
@@ -326,7 +316,9 @@ serverFiles:
             for: 10m
             labels:
               severity: warning
-              component: keda
+              tier: "2"
+              component: keda-operator
+              audience: platform
             annotations:
               summary: KEDA workqueue {{ $labels.name }} depth is sustained high
               description: |
@@ -360,7 +352,9 @@ serverFiles:
             for: 10m
             labels:
               severity: warning
-              component: keda
+              tier: "2"
+              component: keda-operator
+              audience: platform
             annotations:
               summary: KEDA container {{ $labels.container }} is being CPU-throttled (>10%)
               description: |
@@ -394,7 +388,9 @@ serverFiles:
             for: 5m
             labels:
               severity: warning
-              component: keda
+              tier: "2"
+              component: keda-operator
+              audience: platform
             annotations:
               summary: KEDA metrics-apiserver -> operator gRPC is returning {{ $labels.grpc_code }}
               description: |
@@ -418,7 +414,9 @@ serverFiles:
             for: 5m
             labels:
               severity: critical
-              component: keda
+              tier: "2"
+              component: keda-operator
+              audience: platform
             annotations:
               summary: KEDA adapter -> operator gRPC went silent after sustained traffic
               description: |
@@ -430,6 +428,89 @@ serverFiles:
                   kubectl -n platform-keda logs deploy/keda-operator --tail=200
                   kubectl -n platform-keda logs deploy/keda-operator-metrics-apiserver --tail=200
                   kubectl -n platform-keda get secret kedaorg-certs -o jsonpath='{.data.tls\.crt}' | base64 -d | openssl x509 -noout -enddate
+
+          # platform-keda admission webhook latency. apiserver applies
+          # a 10s timeout to admission webhooks; p99 > 1s means callers
+          # are starting to feel kubectl apply lag, which the up-only SLO
+          # cannot detect.
+          - alert: KedaAdmissionWebhookLatencyHigh
+            expr: |
+              histogram_quantile(0.99,
+                sum by (le) (
+                  rate(controller_runtime_webhook_latency_seconds_bucket{app_kubernetes_io_name="keda-admission-webhooks"}[5m])
+                )
+              ) > 1
+            for: 10m
+            labels:
+              severity: warning
+              tier: "2"
+              component: keda-admission-webhooks
+              audience: platform
+            annotations:
+              summary: KEDA admission webhook p99 latency > 1s for 10m
+              description: |
+                The 99th-percentile admission webhook handler latency has
+                been above 1 second for 10 minutes. apiserver enforces a
+                10-second timeout, so this is the early-warning before
+                kubectl apply of ScaledObject/ScaledJob starts failing.
+                Check the keda-operator pod for resource pressure, leader
+                churn, and downstream metrics-apiserver health.
+
+          # Memory pressure on the KEDA operator container. cAdvisor
+          # exposes both the working set and the spec limit; when the
+          # ratio crosses 0.9 we have 15 minutes' notice before OOMKill.
+          - alert: KedaContainerMemoryNearLimit
+            expr: |
+              max by (pod, container) (
+                container_memory_working_set_bytes{namespace="platform-keda", container!="", container!="POD"}
+                /
+                container_spec_memory_limit_bytes{namespace="platform-keda", container!="", container!="POD"}
+              ) > 0.9
+            for: 15m
+            labels:
+              severity: warning
+              tier: "2"
+              component: keda-operator
+              audience: platform
+            annotations:
+              summary: KEDA container {{ $labels.pod }}/{{ $labels.container }} > 90% memory limit for 15m
+              description: |
+                Working set has been above 90% of the container's memory
+                limit for 15 minutes. OOMKill is imminent and will burn
+                the SLO. Investigate for memory leak or raise the limit
+                in lab/keda/values.yaml.
+
+          - alert: KedaOperatorLeaderChurn
+            expr: |
+              changes(leader_election_master_status{name=~".*keda.*"}[10m]) > 2
+            for: 5m
+            labels:
+              severity: warning
+              tier: "2"
+              component: keda-operator
+              audience: platform
+            annotations:
+              summary: KEDA operator leader election churning
+              description: |
+                The KEDA operator leader has changed > 2 times in 10m. Reconciles
+                halt during transitions; investigate operator pod stability
+                (OOM, liveness probe, network).
+
+          - alert: KedaCertNearExpiry
+            expr: |
+              (min(certmanager_certificate_expiration_timestamp_seconds{namespace="platform-keda"}) - time()) / 86400 < 14
+            for: 1h
+            labels:
+              severity: warning
+              tier: "2"
+              component: cert-manager
+              audience: platform
+            annotations:
+              summary: A KEDA cert-manager certificate expires in < 14 days
+              description: |
+                At least one KEDA TLS cert expires in under 14 days. Renewal
+                should be automatic via cert-manager — verify by checking
+                certmanager_certificate_renewal_timestamp_seconds.
 
       - name: keda-scalers
         interval: 30s
@@ -502,34 +583,6 @@ serverFiles:
                 maxReplicaCount for 10m. Either load is genuinely above capacity,
                 or the trigger threshold is too tight. Bump maxReplicaCount or
                 tune the trigger.
-
-          - alert: KedaOperatorLeaderChurn
-            expr: |
-              changes(leader_election_master_status{name=~".*keda.*"}[10m]) > 2
-            for: 5m
-            labels:
-              severity: warning
-              component: keda
-            annotations:
-              summary: KEDA operator leader election churning
-              description: |
-                The KEDA operator leader has changed > 2 times in 10m. Reconciles
-                halt during transitions; investigate operator pod stability
-                (OOM, liveness probe, network).
-
-          - alert: KedaCertNearExpiry
-            expr: |
-              (min(certmanager_certificate_expiration_timestamp_seconds{namespace="platform-keda"}) - time()) / 86400 < 14
-            for: 1h
-            labels:
-              severity: warning
-              component: keda
-            annotations:
-              summary: A KEDA cert-manager certificate expires in < 14 days
-              description: |
-                At least one KEDA TLS cert expires in under 14 days. Renewal
-                should be automatic via cert-manager — verify by checking
-                certmanager_certificate_renewal_timestamp_seconds.
 
       - name: demo-cpu-workload
         interval: 30s
