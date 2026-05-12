@@ -1650,6 +1650,11 @@ helm upgrade --install "${KDW_HELM_RELEASE}" kdw/keda-deprecation-webhook \
   --values "${ROOT_DIR}/lab/charts/values-kdw-lab.yaml" \
   --wait --timeout 2m
 
+# Lab-specific: the chart's namespace template does not carry the
+# prodsuite label that lab monitoring uses to group workloads.
+# Apply it after helm install.
+kubectl label namespace "${KDW_NAMESPACE}" prodsuite=Platform --overwrite
+
 log "keda-deprecation-webhook ${KDW_VERSION} ready"
 ```
 
