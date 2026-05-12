@@ -45,24 +45,36 @@ echo "${APPLY_OUT}" | grep -q "KEDA001" \
 log "rejection OK"
 
 # 4. legacy-cpu warn-mode gauge
+# Each pod runs an independent periodic scanner; at startup the two replicas
+# may not have scanned at the same point in time. Retry for up to 60s to
+# tolerate the case where the first curl hit lands on the slower pod.
 log "checking warn-mode gauge for legacy-cpu"
-metrics="$(kdw_curl "http://${KDW_HELM_RELEASE}-keda-deprecation-webhook.${KDW_NAMESPACE}.svc:8080/metrics")"
-echo "${metrics}" \
-  | grep 'keda_deprecation_violations{' \
-  | grep 'namespace="legacy-cpu"' \
-  | grep 'severity="warn"' \
-  || fail "expected violations{namespace=legacy-cpu, severity=warn} not found"
+seen_warn=0
+for _ in {1..30}; do
+  metrics="$(kdw_curl "http://${KDW_HELM_RELEASE}-keda-deprecation-webhook.${KDW_NAMESPACE}.svc:8080/metrics" || true)"
+  if echo "${metrics}" | grep 'keda_deprecation_violations{' \
+      | grep 'namespace="legacy-cpu"' | grep -q 'severity="warn"'; then
+    seen_warn=1; break
+  fi
+  sleep 2
+done
+[[ ${seen_warn} -eq 1 ]] || fail "expected violations{namespace=legacy-cpu, severity=warn} not found after 60s"
 log "warn-mode gauge OK"
 
 # 5. Hot-reload: flip legacy-cpu to off, expect series to update.
+# Provide the full rule[0] fields — helm --set on list elements replaces the
+# whole entry, so omitting id/defaultSeverity would drop required fields and
+# cause the webhook to reject the config and fail its readiness probe.
 log "hot-reloading rules to severity=off for legacy-cpu via helm upgrade"
 helm upgrade "${KDW_HELM_RELEASE}" kdw/keda-deprecation-webhook \
   --version "${KDW_VERSION#v}" \
   --namespace "${KDW_NAMESPACE}" \
   --reuse-values \
+  --set 'rules[0].id=KEDA001' \
+  --set 'rules[0].defaultSeverity=error' \
   --set 'rules[0].namespaceOverrides[0].names[0]=legacy-cpu' \
   --set 'rules[0].namespaceOverrides[0].severity=off' \
-  --wait --timeout 1m
+  --wait --timeout 2m
 
 log "waiting up to 60s for severity flip to propagate"
 seen_off=0
