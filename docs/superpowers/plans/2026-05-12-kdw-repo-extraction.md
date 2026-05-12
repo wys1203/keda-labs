@@ -1562,20 +1562,27 @@ gh release edit v0.1.0 --repo wys1203/keda-deprecation-webhook \
 
 All Phase C work happens **inside `/Users/wys1203/go/src/github.com/wys1203/keda-labs`**, not the extraction working tree. Each task lists exact paths in `keda-labs`.
 
-### Task C0: Branch off main
+### Task C0: Stay on the spec/plan branch
+
+The current branch `kdw-extraction-spec` already carries the spec and plan
+docs that Phase C's tombstone (C2) cross-references. Phase C's commits 1
+and 2 land on top of those doc commits so the whole extraction ships as
+one PR.
 
 **Files:** none.
 
-- [ ] **Step 1: Create branch**
+- [ ] **Step 1: Verify branch state**
 
 ```bash
 cd /Users/wys1203/go/src/github.com/wys1203/keda-labs
-git checkout main
-git pull
-git checkout -b kdw-consume-chart
+git rev-parse --abbrev-ref HEAD
+git status --porcelain
+git log --oneline -5
 ```
 
-Expected: clean tree on new branch.
+Expected: branch is `kdw-extraction-spec`; working tree clean; recent
+commits include `docs(spec): correct kdw extraction values ...` and
+`docs(plan): kdw repo extraction implementation plan`.
 
 ---
 
@@ -2025,7 +2032,7 @@ git commit -m "feat(lab): remove vendored kdw/ now that the chart ships v0.1.0"
 
 ```bash
 cd /Users/wys1203/go/src/github.com/wys1203/keda-labs
-git push -u origin kdw-consume-chart
+git push -u origin kdw-extraction-spec
 ```
 
 - [ ] **Step 2: Open PR**
