@@ -192,7 +192,7 @@ Prometheus scrape -> recording rules (5m/1h/6h/7d ratios)
 
 ## 5. Dashboards
 
-All three dashboards live in `lab/grafana/dashboards/` (lab core) + `kdw/dashboard.json` (KDW) and are provisioned into the **KEDA Lab** Grafana folder. Each exposes three top-bar template variables: `Datasource` (Prometheus picker), `Prodsuite` (driven by namespace label `prodsuite`), and `Namespace` (multi-select, scoped to the chosen prodsuite).
+All three dashboards live in `lab/grafana/dashboards/` (lab core) + the KDW dashboard (fetched from the [wys1203/keda-deprecation-webhook](https://github.com/wys1203/keda-deprecation-webhook) standalone repo at install time) and are provisioned into the **KEDA Lab** Grafana folder. The webhook itself is now external; `make install-webhook` installs it via Helm from the standalone repo. Each exposes three top-bar template variables: `Datasource` (Prometheus picker), `Prodsuite` (driven by namespace label `prodsuite`), and `Namespace` (multi-select, scoped to the chosen prodsuite).
 
 ### `monitoring-stack` — Monitoring Stack
 
@@ -393,10 +393,10 @@ make down          # delete the kind cluster (everything goes with it)
 
 ## 9. Known caveats / gotchas
 
-- **Dashboard ConfigMap does not auto-sync.** Editing a JSON file under `lab/grafana/dashboards/` (lab core) + `kdw/dashboard.json` (KDW) does not change what the running Grafana pod sees. The ConfigMap is recreated only inside `lab/scripts/install-grafana.sh`, and Grafana's file provisioner reads at startup. Workflow: re-run `make install-grafana` (which recreates the CM, helm-upgrades, and `rollout restart`s), or as a faster path:
+- **Dashboard ConfigMap does not auto-sync.** Editing a JSON file under `lab/grafana/dashboards/` (lab core) does not change what the running Grafana pod sees. The ConfigMap is recreated only inside `lab/scripts/install-grafana.sh`, which also fetches the KDW dashboard from the standalone repo at the pinned version. Grafana's file provisioner reads at startup. Workflow: re-run `make install-grafana` (which recreates the CM, helm-upgrades, and `rollout restart`s), or as a faster path:
   ```bash
   kubectl create cm grafana-dashboards -n monitoring \
-    --from-file=lab/grafana/dashboards --from-file=keda-deprecations.json=kdw/dashboard.json \
+    --from-file=lab/grafana/dashboards \
     --dry-run=client -o yaml | kubectl apply -f -
   kubectl -n monitoring rollout restart deployment/grafana
   ```

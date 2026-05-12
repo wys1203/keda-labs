@@ -1,0 +1,11 @@
+# Lab-specific overrides for keda-deprecation-webhook.
+# Mirrors the previous kdw/manifests/deploy/configmap.yaml so the lab's
+# legacy-cpu demo demonstrates warn-mode without being permanently
+# rejected.
+
+rules:
+  - id: KEDA001
+    defaultSeverity: error
+    namespaceOverrides:
+      - names: ["legacy-cpu"]
+        severity: warn

@@ -1,3 +1,9 @@
+> **2026-05-12 update:** the webhook described here was extracted into a
+> standalone repo. See
+> [`2026-05-12-kdw-repo-extraction-design.md`](./2026-05-12-kdw-repo-extraction-design.md)
+> for the extraction design. This document remains as historical record
+> of the original in-monorepo design.
+
 # keda-deprecation-webhook — Design
 
 **Status:** Draft (spec)

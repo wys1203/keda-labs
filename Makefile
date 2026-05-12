@@ -11,13 +11,12 @@ LOAD_REPLICAS ?= 1
 
 # Layout:
 #   scripts/      — orchestrators that span lab + kdw (up, down, status, port-forwards, lib.sh)
-#   lab/scripts/  — lab-core install/verify (KEDA, monitoring, demos)
-#   kdw/scripts/  — keda-deprecation-webhook install/verify
+#   lab/scripts/  — lab-core install/verify (KEDA, monitoring, demos, webhook)
 
 .PHONY: help up down recreate status verify verify-monitoring demo load-test grafana prometheus alertmanager logs \
 	prereqs create-cluster label-zones prepull-images install-metrics-server install-prometheus \
 	install-cert-manager install-keda install-grafana install-monitoring \
-	build-webhook install-webhook verify-webhook demo-deprecated
+	install-webhook verify-webhook demo-deprecated
 
 help:
 	@printf "\nKEDA kind lab shortcuts\n\n"
@@ -108,18 +107,12 @@ demo:
 load-test:
 	@CLUSTER_NAME=$(CLUSTER_NAME) LOAD_DURATION=$(LOAD_DURATION) LOAD_REPLICAS=$(LOAD_REPLICAS) ./scripts/load-test.sh
 
-# --- KDW (kdw/scripts/) ---
-build-webhook:
-	@docker build -t keda-deprecation-webhook:dev -f kdw/Dockerfile kdw
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./kdw/scripts/install-webhook.sh
-
+# --- KDW (consumed from github.com/wys1203/keda-deprecation-webhook) ---
 install-webhook:
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./kdw/scripts/install-webhook.sh
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./lab/scripts/install-webhook.sh
 
 verify-webhook:
-	@CLUSTER_NAME=$(CLUSTER_NAME) ./kdw/scripts/verify-webhook.sh
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./lab/scripts/verify-webhook.sh
 
 demo-deprecated:
-	@kubectl apply -f kdw/demo/demo-deprecated/namespace.yaml
-	@kubectl apply -f kdw/demo/demo-deprecated/deployment.yaml
-	@kubectl apply -f kdw/demo/demo-deprecated/scaledobject.yaml || true   # expected to be rejected
+	@CLUSTER_NAME=$(CLUSTER_NAME) ./lab/scripts/demo-deprecated.sh

@@ -3,7 +3,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LAB_DIR="${ROOT_DIR}/lab"
-KDW_DIR="${ROOT_DIR}/kdw"
+KDW_VERSION="${KDW_VERSION:-v0.1.0}"
+KDW_NAMESPACE="${KDW_NAMESPACE:-keda-system}"
+KDW_HELM_REPO_URL="${KDW_HELM_REPO_URL:-https://wys1203.github.io/keda-deprecation-webhook}"
+KDW_HELM_RELEASE="${KDW_HELM_RELEASE:-kdw}"
 CLUSTER_NAME="${CLUSTER_NAME:-keda-lab}"
 KEDA_NAMESPACE="${KEDA_NAMESPACE:-platform-keda}"
 CERT_MANAGER_NAMESPACE="${CERT_MANAGER_NAMESPACE:-cert-manager}"
