@@ -22,13 +22,21 @@ kubectl create configmap grafana-dashboard-providers \
   --from-file="${LAB_DIR}/grafana/provisioning/dashboards/dashboards.yaml" \
   --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
+# Fetch the kdw dashboard at the pinned KDW_VERSION (defined in scripts/lib.sh)
+KDW_DASHBOARD_TMP="$(mktemp -t kdw-dashboard.XXXXXX.json)"
+trap 'rm -f "${KDW_DASHBOARD_TMP}"' EXIT
+log "fetching kdw dashboard ${KDW_VERSION}"
+curl -fsSL "https://raw.githubusercontent.com/wys1203/keda-deprecation-webhook/${KDW_VERSION}/dashboard.json" \
+  -o "${KDW_DASHBOARD_TMP}"
+
 # Dashboards CM merges lab-core dashboards (lab/grafana/dashboards/*.json)
-# with KDW's own dashboard (kdw/dashboard.json) into a single ConfigMap.
-# Grafana provisioner picks them all up via the dashboards.yaml provider.
+# with KDW's own dashboard (fetched from the upstream repo at the pinned
+# KDW_VERSION) into a single ConfigMap. Grafana provisioner picks them all
+# up via the dashboards.yaml provider.
 kubectl create configmap grafana-dashboards \
   --namespace "${MONITORING_NAMESPACE}" \
   --from-file="${LAB_DIR}/grafana/dashboards" \
-  --from-file=keda-deprecations.json="${KDW_DIR}/dashboard.json" \
+  --from-file=keda-deprecations.json="${KDW_DASHBOARD_TMP}" \
   --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
 log "installing Grafana 11 into namespace ${MONITORING_NAMESPACE}"
