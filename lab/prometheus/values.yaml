@@ -185,7 +185,9 @@ serverFiles:
             for: 2m
             labels:
               severity: critical
-              component: keda-platform-slo
+              tier: "1"
+              component: keda-operator
+              audience: platform
               slo: reconcile_success
             annotations:
               summary: KEDA reconcile SLO is burning error budget fast (14.4x)
@@ -204,7 +206,9 @@ serverFiles:
             for: 15m
             labels:
               severity: warning
-              component: keda-platform-slo
+              tier: "1"
+              component: keda-operator
+              audience: platform
               slo: reconcile_success
             annotations:
               summary: KEDA reconcile SLO is burning error budget slowly (6x)
@@ -224,7 +228,9 @@ serverFiles:
             for: 2m
             labels:
               severity: critical
-              component: keda-platform-slo
+              tier: "1"
+              component: keda-operator
+              audience: platform
               slo: operator_up
             annotations:
               summary: KEDA operator UP SLO is burning error budget fast (14.4x)
@@ -243,7 +249,9 @@ serverFiles:
             for: 15m
             labels:
               severity: warning
-              component: keda-platform-slo
+              tier: "1"
+              component: keda-operator
+              audience: platform
               slo: operator_up
             annotations:
               summary: KEDA operator UP SLO is burning error budget slowly (6x)
