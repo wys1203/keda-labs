@@ -1,3 +1,9 @@
+> **2026-05-12 update:** the webhook described here was extracted into a
+> standalone repo. See
+> [`../plans/2026-05-12-kdw-repo-extraction.md`](../plans/2026-05-12-kdw-repo-extraction.md)
+> for the extraction plan. This document remains as historical record
+> of the original in-monorepo implementation plan.
+
 # keda-deprecation-webhook Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

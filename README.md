@@ -56,18 +56,27 @@ A ValidatingWebhook + controller that blocks/inventories deprecated KEDA spec
 fields ahead of the 2.16 → 2.18 fleet upgrade. KEDA001 (cpu/memory
 `metadata.type`) is the first rule shipped.
 
+### keda-deprecation-webhook
+
+The webhook lives in its own repo at
+[wys1203/keda-deprecation-webhook](https://github.com/wys1203/keda-deprecation-webhook).
+The lab pins it via `KDW_VERSION` in `scripts/lib.sh` and installs it via
+`helm` (`make install-webhook`). Lab-specific rule overrides live in
+`lab/charts/values-kdw-lab.yaml`.
+
 - **Spec:** `docs/superpowers/specs/2026-05-05-keda-deprecation-webhook-design.md`
 - **Plan:** `docs/superpowers/plans/2026-05-09-keda-deprecation-webhook.md`
 - **操作手冊(繁中):** `docs/keda-deprecation-webhook-zh-TW.md`
-- **Manifests:** `kdw/manifests/deploy/`
-- **Lab CM** (`kdw/manifests/deploy/configmap.yaml`) defaults
+- **Install:** `make install-webhook` (uses the Helm chart at the pinned `KDW_VERSION`)
+- **Lab overrides** (`lab/charts/values-kdw-lab.yaml`) defaults
   `KEDA001` to `severity: error` and exempts the `legacy-cpu` namespace to
   `severity: warn` so the existing deprecated SO demonstrates the warn-mode
   code path without being permanently blocked.
 - **Reject-mode demo:** `make demo-deprecated` — applies a deliberately
   deprecated SO in the `demo-deprecated` namespace; expected to be rejected
   by the webhook with an explanatory message.
-- **Dashboard:** Grafana → **KEDA Deprecations** (UID `keda-deprecations`).
+- **Dashboard:** Grafana → **KEDA Deprecations** (UID `keda-deprecations`);
+  ships in the standalone repo and is fetched by the lab at install time.
 - **Alerts:** `KedaDeprecationWebhookDown`, `KedaDeprecationConfigReloadFailing`,
   `KedaDeprecationErrorViolationsPresent` (group `keda-deprecations`).
 - **E2E:** `make verify-webhook` — spins up an in-cluster curl pod, hits
@@ -119,7 +128,7 @@ panel on *KEDA Operations*.
 
 ### Grafana dashboards
 
-Three dashboards are provisioned from `lab/grafana/dashboards/` (lab core) and `kdw/dashboard.json` (KDW):
+Three dashboards are provisioned from `lab/grafana/dashboards/` (lab core) and the KDW dashboard (fetched from the standalone repo at install time):
 
 | UID | Title | Use it for |
 | --- | --- | --- |

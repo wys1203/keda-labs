@@ -141,7 +141,7 @@ make demo-deprecated     # 故意 apply 一個違規 SO,預期被 reject
 
 ### 3.3 Manifest 結構
 
-`kdw/manifests/deploy/`:
+Helm chart 的 templates 目錄(位於 [wys1203/keda-deprecation-webhook](https://github.com/wys1203/keda-deprecation-webhook)):
 
 | 檔案 | 用途 |
 |---|---|
@@ -162,7 +162,7 @@ make demo-deprecated     # 故意 apply 一個違規 SO,預期被 reject
 
 ### 4.1 Lab 預設 CM
 
-`kdw/manifests/deploy/configmap.yaml`:
+`lab/charts/values-kdw-lab.yaml`(透過 Helm values 傳入):
 
 ```yaml
 apiVersion: v1
@@ -464,7 +464,7 @@ Readiness probe failed: HTTP probe failed with statuscode: 500
    ```bash
    kubectl -n keda-system logs -l app.kubernetes.io/name=keda-deprecation-webhook --tail=20 | grep -E "forbidden|Failed to watch"
    ```
-   `kdw/manifests/deploy/rbac.yaml` 的 Role 必須允許 `configmaps: get/list/watch`(而且**不可加 `resourceNames`**,因為 RBAC 對 list/watch 不認 `resourceNames`)。
+   [`charts/keda-deprecation-webhook/templates/rbac.yaml`](https://github.com/wys1203/keda-deprecation-webhook/blob/v0.1.0/charts/keda-deprecation-webhook/templates/rbac.yaml) 的 Role 必須允許 `configmaps: get/list/watch`(而且**不可加 `resourceNames`**,因為 RBAC 對 list/watch 不認 `resourceNames`)。
 
 2. **cert-manager 還沒簽出 secret** —— `kdw-tls` Secret 不存在的話 pod 會 mount 失敗。
    ```bash
@@ -496,7 +496,7 @@ for pod in $(kubectl -n keda-system get pods -l app.kubernetes.io/name=keda-depr
 done
 ```
 
-(註:image 是 distroless,沒有 `wget`,實務上用 `kubectl run kdw-curl --rm --attach -i --restart=Never --image=curlimages/curl:8.10.1 --command -- curl -s http://...:8080/metrics`,`kdw/scripts/verify-webhook.sh` 裡有現成 helper。)
+(註:image 是 distroless,沒有 `wget`,實務上用 `kubectl run kdw-curl --rm --attach -i --restart=Never --image=curlimages/curl:8.10.1 --command -- curl -s http://...:8080/metrics`,`lab/scripts/verify-webhook.sh` 裡有現成 helper。)
 
 ### 7.4 Webhook 整個失聯怎麼辦
 
@@ -563,7 +563,8 @@ func (*SomeNewRule) Lint(t Target) []Violation {
 ### 9.4 跑既有測試確認框架沒被打壞
 
 ```bash
-go test ./kdw/internal/...
+# 在 standalone repo (github.com/wys1203/keda-deprecation-webhook) 裡:
+go test ./internal/...
 ```
 
 ### 9.5 操作員之後可以選擇性開啟新規則
@@ -584,41 +585,36 @@ rules:
 
 ## 10. 附錄 A —— 檔案地圖
 
-倉庫頂層分成三塊:`scripts/`(orchestrator)、`lab/`(lab core)、`kdw/`(本元件)。
+倉庫頂層分成兩塊:`scripts/`(orchestrator)、`lab/`(lab core)。
+KDW 本元件已提取至獨立 repo：[github.com/wys1203/keda-deprecation-webhook](https://github.com/wys1203/keda-deprecation-webhook)。
+
+KDW standalone repo 結構(v0.1.0):
+- [`cmd/keda-deprecation-webhook/main.go`](https://github.com/wys1203/keda-deprecation-webhook/blob/v0.1.0/cmd/keda-deprecation-webhook/main.go) — 入口、manager wiring
+- [`internal/rules/`](https://github.com/wys1203/keda-deprecation-webhook/blob/v0.1.0/internal/rules/) — Rule 介面 + KEDA001
+- [`internal/config/`](https://github.com/wys1203/keda-deprecation-webhook/blob/v0.1.0/internal/config/) — schema / loader / resolver / store / watcher
+- [`internal/metrics/`](https://github.com/wys1203/keda-deprecation-webhook/blob/v0.1.0/internal/metrics/) — Prometheus collectors
+- [`internal/webhook/`](https://github.com/wys1203/keda-deprecation-webhook/blob/v0.1.0/internal/webhook/) — admission diff + handler
+- [`internal/controller/`](https://github.com/wys1203/keda-deprecation-webhook/blob/v0.1.0/internal/controller/) — emitter + SO/SJ/namespace reconcilers
+- `charts/keda-deprecation-webhook/` — Helm chart(取代舊 manifests/deploy/)
+- `dashboard.json` — Grafana KEDA Deprecations(9 panels),lab 安裝時自動抓取
+
+keda-labs repo 結構(本 repo):
 
 ```
 keda-labs/
-├── kdw/                                           # ← 本元件全部在這
-│   ├── cmd/keda-deprecation-webhook/main.go      # 入口、manager wiring
-│   ├── internal/
-│   │   ├── rules/                                 # Rule 介面 + KEDA001
-│   │   ├── config/                                # schema / loader / resolver / store / watcher
-│   │   ├── metrics/                               # Prometheus collectors
-│   │   ├── webhook/                               # admission diff + handler
-│   │   └── controller/                            # emitter + SO/SJ/namespace reconcilers
-│   ├── manifests/deploy/                          # KDW 部署資源(ns/rbac/cert/cm/svc/deploy/pdb/vwc)
-│   ├── demo/demo-deprecated/                      # reject-mode demo workload
-│   ├── scripts/
-│   │   ├── install-webhook.sh                     # build + load + apply + wait
-│   │   └── verify-webhook.sh                      # 6 步 E2E
-│   ├── dashboard.json                             # Grafana KEDA Deprecations(9 panels)
-│   ├── test/integration/                          # envtest CRD 煙霧測試
-│   ├── Dockerfile
-│   ├── go.mod, go.sum                             # module: github.com/wys1203/keda-labs/kdw
-│   └── (alerts 仍在 lab/prometheus/values.yaml 的 keda-deprecations group)
-│
 ├── lab/                                           # lab core(KEDA + 監控 + demos)
 │   ├── kind/cluster.yaml
 │   ├── keda/values.yaml
 │   ├── prometheus/values.yaml                     # 含 keda-deprecations alert group(原因見 §5.2)
 │   ├── grafana/{dashboards,provisioning,values.yaml}
+│   ├── charts/values-kdw-lab.yaml                 # Lab-specific KDW rule overrides
 │   ├── manifests/{alert-stdout-sink.yaml, demo-cpu, demo-prom, legacy-cpu}
-│   └── scripts/                                   # install-keda, install-monitoring, deploy-demo, ...
+│   └── scripts/                                   # install-keda, install-monitoring, deploy-demo, install-webhook, verify-webhook, ...
 │
 ├── scripts/                                       # 跨元件 orchestrator
 │   ├── up.sh, delete-cluster.sh, status.sh, verify.sh, logs.sh, prereq-check.sh
 │   ├── port-forward-{grafana,prometheus,alertmanager}.sh
-│   └── lib.sh                                     # 定義 ROOT_DIR / LAB_DIR / KDW_DIR
+│   └── lib.sh                                     # 定義 ROOT_DIR / LAB_DIR / KDW_VERSION
 │
 ├── docs/superpowers/specs/2026-05-05-keda-deprecation-webhook-design.md
 └── docs/superpowers/plans/2026-05-09-keda-deprecation-webhook.md
