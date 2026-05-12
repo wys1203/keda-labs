@@ -99,7 +99,7 @@ Expected: `23 /tmp/alerts-baseline.txt`.
 - [ ] **Step 3: Verify `controller_runtime_webhook_request_duration_seconds` exists (for `KedaAdmissionWebhookLatencyHigh`)**
 
 ```bash
-curl -s "http://localhost:9090/api/v1/query?query=controller_runtime_webhook_request_duration_seconds_count{app_kubernetes_io_name=\"keda-admission-webhooks\"}" \
+curl -s "http://localhost:9090/api/v1/query?query=controller_runtime_webhook_latency_seconds_count{app_kubernetes_io_name=\"keda-admission-webhooks\"}" \
   | jq '.data.result | length'
 ```
 
@@ -295,7 +295,7 @@ Insert these alerts at the bottom of the `keda-control-plane` group (just before
             expr: |
               histogram_quantile(0.99,
                 sum by (le) (
-                  rate(controller_runtime_webhook_request_duration_seconds_bucket{app_kubernetes_io_name="keda-admission-webhooks"}[5m])
+                  rate(controller_runtime_webhook_latency_seconds_bucket{app_kubernetes_io_name="keda-admission-webhooks"}[5m])
                 )
               ) > 1
             for: 10m

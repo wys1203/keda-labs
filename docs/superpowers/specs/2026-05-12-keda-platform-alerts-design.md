@@ -150,7 +150,7 @@ Why unchanged: multi-window multi-burn-rate is the canonical noise-resistant SLO
   expr: |
     histogram_quantile(0.99,
       sum by (le) (
-        rate(controller_runtime_webhook_request_duration_seconds_bucket{
+        rate(controller_runtime_webhook_latency_seconds_bucket{
           app_kubernetes_io_name="keda-admission-webhooks"
         }[5m])
       )
@@ -171,7 +171,7 @@ Why unchanged: multi-window multi-burn-rate is the canonical noise-resistant SLO
       health.
 ```
 
-Why: apiserver's admission timeout is 10s; once p99 climbs past 1s, callers experience visible `kubectl apply` lag. The SLO does **not** cover this (it only measures `up` and reconcile-error ratio, not webhook latency). Required metric `controller_runtime_webhook_request_duration_seconds` is exported by default by controller-runtime — **verification step required** during implementation: confirm the histogram appears in Prometheus before enabling this alert.
+Why: apiserver's admission timeout is 10s; once p99 climbs past 1s, callers experience visible `kubectl apply` lag. The SLO does **not** cover this (it only measures `up` and reconcile-error ratio, not webhook latency). Required metric `controller_runtime_webhook_latency_seconds` is exported by default by controller-runtime — **verification step required** during implementation: confirm the histogram appears in Prometheus before enabling this alert. (Note: in older controller-runtime versions this metric was named `controller_runtime_webhook_request_duration_seconds`; the rename happened around v0.13.)
 
 ##### `KedaContainerMemoryNearLimit`
 
