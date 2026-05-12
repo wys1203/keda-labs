@@ -1098,29 +1098,34 @@ git commit -m "docs: add LICENSE, README, CONTRIBUTING, SECURITY"
 - Create: `/tmp/kdw-extract/.github/workflows/ci.yaml`
 - Create: `/tmp/kdw-extract/.golangci.yml`
 
-- [ ] **Step 1: `.golangci.yml`** (minimal, opinionated)
+- [ ] **Step 1: `.golangci.yml`** (golangci-lint v2 schema — required by `golangci-lint-action@v7`)
 
 ```yaml
+version: "2"
+
 run:
   timeout: 5m
-  go: "1.25"
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - errcheck
     - govet
     - ineffassign
     - staticcheck
-    - unused
-    - gofmt
-    - goimports
     - misspell
 
-linters-settings:
-  goimports:
-    local-prefixes: github.com/wys1203/keda-deprecation-webhook
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/wys1203/keda-deprecation-webhook
 ```
+
+> Note: golangci-lint v2 reorganized the config schema — `disable-all` is replaced by `default: none`, and `gofmt`/`goimports` are now **formatters** (top-level `formatters:` block), not linters. Use `golangci-lint-action@v7` (v6 only supports v1 config).
 
 - [ ] **Step 2: `.github/workflows/ci.yaml`**
 
@@ -1147,9 +1152,9 @@ jobs:
       - run: go vet ./...
       - run: go test -race -coverprofile=coverage.out ./...
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
-          version: v1.62.0
+          version: v2.12.2
       - uses: actions/upload-artifact@v4
         with:
           name: coverage
@@ -1267,6 +1272,7 @@ jobs:
         with:
           charts_dir: charts
           config: .github/cr.yaml
+          skip_existing: true
         env:
           CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -2093,3 +2099,37 @@ After merge:
 - The keda-labs `MEMORY.md` entry "Grafana dashboards are ConfigMap-baked"
   remains accurate (we still rebuild the CM); update it if the future
   Grafana-sidecar migration in the spec's "Open items" gets picked up.
+
+---
+
+## Post-execution notes (added 2026-05-13 after PR #8)
+
+Issues surfaced during the actual run; the plan body above has been
+patched where it would have misled a copy-paste reader. Other observations
+captured here as context for future similar extractions:
+
+- **B3 rc dry-run does not validate the chart job.** `chart-releaser-action`
+  uses the `version:` field in `Chart.yaml`, **not** the git tag. So tagging
+  `v0.0.0-rc1` against a chart that says `version: 0.1.0` publishes `chart-0.1.0`
+  immediately. Treat B3 as image-only validation; the chart side is
+  effectively validated by B4.
+- **B4 `v0.1.0` chart job fails the second time** when `chart-0.1.0`
+  release already exists. The plan now has `skip_existing: true` for
+  this reason. The first real release with this option enabled is
+  idempotent.
+- **No `v<tag>` GitHub release** is created by `chart-releaser-action`.
+  It only creates `chart-<chart-version>` releases. If a `v<tag>` release
+  with curated notes is desired, run `gh release create v<tag> ...`
+  manually after the workflow completes. (Done for `v0.1.0`.)
+- **Lab kind cluster must be k8s ≥ 1.27** to install the chart
+  (`kubeVersion: ">=1.27.0-0"`). `lab/kind/cluster.yaml` was on
+  `kindest/node:v1.24.17`; bumped to `v1.29.4` as part of `C3`'s fix
+  commit (`1e0856c`).
+- **`helm --set` on a list element is a full-element replacement.**
+  C1's `verify-webhook.sh` hot-reload step used
+  `--reuse-values --set rules[0].namespaceOverrides[0].severity=off`,
+  which replaced the entire `rules[0]` and dropped its `id` and
+  `defaultSeverity` fields. The webhook then rejected the config and
+  the readiness probe flipped to 500. Specify the full `rules[0]` shape
+  in the `--set` chain (or stage values into a tmp YAML file and
+  `helm upgrade -f`).
