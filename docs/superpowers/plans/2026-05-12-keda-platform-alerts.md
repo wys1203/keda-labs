@@ -844,7 +844,7 @@ Expected: empty (alert no longer in active list).
 - [ ] **Step 4: Tier 2 behavioral spot-check — bad CM → ConfigReloadFailing fires after 5m**
 
 ```bash
-kubectl -n keda-system patch cm keda-deprecation-webhook-config \
+kubectl -n keda-system patch cm kdw-keda-deprecation-webhook-config \
   --type merge -p '{"data":{"config.yaml":"INVALID :::: yaml\n"}}'
 echo "Waiting 5+ minutes (for: 5m) for KedaDeprecationConfigReloadFailing to fire..."
 for i in {1..72}; do
@@ -861,9 +861,10 @@ done
 
 Expected: `Tier 2 fired after N polls.` (60 ≤ N ≤ 72, given the 5-minute `for:`).
 
-Restore:
+Restore (KDW now lives in its own repo + Helm chart since PR #8; the lab's CM is templated by the chart from `lab/charts/values-kdw-lab.yaml`. The simplest way to restore the original CM is to re-run the lab's install script, which re-templates the chart and re-applies):
+
 ```bash
-kubectl apply -f kdw/manifests/deploy/configmap.yaml
+make install-webhook
 sleep 30
 curl -s http://localhost:9090/api/v1/alerts \
   | jq '.data.alerts[] | select(.labels.alertname=="KedaDeprecationConfigReloadFailing")'
