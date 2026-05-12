@@ -39,9 +39,16 @@ keda-deprecation-webhook/
 │   ├── Chart.yaml
 │   ├── values.yaml
 │   └── templates/
+│       ├── _helpers.tpl                 # standard Helm helpers
+│       ├── namespace.yaml               # gated by `namespace.create`
+│       ├── serviceaccount.yaml
+│       ├── rbac.yaml                    # Role, RoleBinding, ClusterRole, ClusterRoleBinding
+│       ├── configmap-rules.yaml         # deprecation rules (from values.rules)
+│       ├── service.yaml
 │       ├── deployment.yaml
+│       ├── pdb.yaml                     # gated by `pdb.enabled`
+│       ├── certificate.yaml             # Issuer + Certificate
 │       ├── validatingwebhookconfiguration.yaml
-│       ├── certificate.yaml
 │       └── configmap-dashboard.yaml     # gated by `dashboard.enabled`
 ├── examples/demo-deprecated/            # was kdw/demo/demo-deprecated/
 ├── dashboard.json                       # stays at repo root; chart references it
@@ -75,9 +82,14 @@ These exist on day one. Everything else is added only when a user asks.
 | `image.tag` | chart `appVersion` | |
 | `image.pullPolicy` | `IfNotPresent` | |
 | `replicaCount` | `2` | matches current deployment.yaml |
-| `namespace` | `keda` | the webhook lives next to KEDA |
-| `webhook.failurePolicy` | `Fail` | matches current VWC |
-| `certificate.duration` | `2160h` | matches current cert-manager Certificate |
+| `namespace` | `keda-system` | the webhook lives next to KEDA |
+| `webhook.failurePolicy` | `Ignore` | matches current VWC |
+| `certificate.duration` | `8760h` | matches current cert-manager Certificate |
+| `certificate.renewBefore` | `720h` | matches current cert-manager Certificate |
+| `pdb.enabled` | `true` | gates PodDisruptionBudget |
+| `pdb.maxUnavailable` | `1` | matches current PDB |
+| `namespace.create` | `false` | when true, chart creates `keda-system` namespace |
+| `rules` | see values.yaml | deprecation rules (mirrors current `configmap.yaml`) — `KEDA001` default `error`, no namespace overrides |
 | `dashboard.enabled` | `false` | gates the dashboard CM (off by default; OSS users opt in) |
 
 ## End state — keda-labs
@@ -94,8 +106,10 @@ These exist on day one. Everything else is added only when a user asks.
   `KDW_VERSION="v0.1.0"`. (Lab pins a known-good kdw release.)
 - `Makefile` — `kdw-image`, `kdw-install`, `kdw-verify`, `kdw-demo` targets
   become thin wrappers:
-  - `kdw-install` → `helm repo add kdw https://wys1203.github.io/keda-deprecation-webhook && helm upgrade --install kdw kdw/keda-deprecation-webhook --version ${KDW_VERSION} -n keda --create-namespace`
-  - `kdw-verify` → `kubectl rollout status deploy/keda-deprecation-webhook -n keda --timeout=120s && kubectl get validatingwebhookconfiguration keda-deprecation-webhook`
+  - `kdw-install` → `helm repo add kdw https://wys1203.github.io/keda-deprecation-webhook && helm upgrade --install kdw kdw/keda-deprecation-webhook --version ${KDW_VERSION} -n keda-system --create-namespace --set 'rules[0].id=KEDA001,rules[0].defaultSeverity=error,rules[0].namespaceOverrides[0].names[0]=legacy-cpu,rules[0].namespaceOverrides[0].severity=warn'`
+    (or a `lab/charts/values-kdw-lab.yaml` file checked in — the lab is the
+    "warn-mode demo" use case from `kdw/manifests/deploy/configmap.yaml`.)
+  - `kdw-verify` → `kubectl rollout status deploy/keda-deprecation-webhook -n keda-system --timeout=120s && kubectl get validatingwebhookconfiguration keda-deprecation-webhook`
   - `kdw-demo` → `kubectl apply -f https://raw.githubusercontent.com/wys1203/keda-deprecation-webhook/${KDW_VERSION}/examples/demo-deprecated/`
   - `kdw-image` is removed (no longer relevant — image comes from GHCR).
 - `scripts/up.sh` — replace direct `source kdw/scripts/install-webhook.sh`
@@ -197,7 +211,7 @@ Commit message for the PR's merge commit:
 ### keda-labs after the cleanup PR
 
 - `make up` from a clean cluster succeeds end-to-end.
-- `kubectl get pod -n keda -l app.kubernetes.io/name=keda-deprecation-webhook`
+- `kubectl get pod -n keda-system -l app.kubernetes.io/name=keda-deprecation-webhook`
   shows running pods.
 - `kubectl get validatingwebhookconfiguration keda-deprecation-webhook` exists
   and has CA bundle injected by cert-manager.
@@ -210,7 +224,7 @@ Commit message for the PR's merge commit:
 |---|---|
 | Module path rewrite leaves stragglers | Gate Step 2 on `go build ./...` and `go vet ./...` before pushing. |
 | Chart defaults drift from current manifests behavior (replicas, failurePolicy, cert duration, CA injection annotations) | Step 2.7 includes a `helm template` vs `kdw/manifests/deploy/*.yaml` diff, attached to the new repo's initial PR description. |
-| Dashboard raw-GitHub fetch fails in offline environments | Chart's `dashboard.enabled` CM is the fallback. `install-grafana.sh` can fall back to `kubectl -n keda get cm kdw-dashboard -o jsonpath` after `helm install` if `curl` fails. Document this in `install-grafana.sh` but don't auto-fallback on day one. |
+| Dashboard raw-GitHub fetch fails in offline environments | Chart's `dashboard.enabled` CM is the fallback. `install-grafana.sh` can fall back to `kubectl -n keda-system get cm kdw-dashboard -o jsonpath` after `helm install` if `curl` fails. Document this in `install-grafana.sh` but don't auto-fallback on day one. |
 | Release workflow misconfigured (wrong permissions, missing GHCR token, chart-releaser GH Pages branch absent) | Step 3.1 dry-runs with `v0.0.0-rc1` before the real `v0.1.0`. |
 | keda-labs's lab breaks after cleanup PR | Two-commit structure: revert commit 2 (or commit 1 too) brings back the vendored `kdw/` immediately. |
 
