@@ -652,7 +652,9 @@ serverFiles:
             for: 5m
             labels:
               severity: critical
+              tier: "2"
               component: keda-deprecation-webhook
+              audience: platform
             annotations:
               summary: keda-deprecation-webhook is unreachable
               description: |
@@ -661,10 +663,12 @@ serverFiles:
 
           - alert: KedaDeprecationConfigReloadFailing
             expr: increase(keda_deprecation_config_reloads_total{result="error"}[10m]) > 0
-            for: 0m
+            for: 5m
             labels:
               severity: warning
+              tier: "2"
               component: keda-deprecation-webhook
+              audience: platform
             annotations:
               summary: keda-deprecation-webhook ConfigMap is invalid
               description: |
@@ -674,8 +678,10 @@ serverFiles:
             expr: sum(keda_deprecation_violations{severity="error"}) > 0
             for: 1h
             labels:
-              severity: warning
-              component: keda-deprecation-webhook
+              severity: info
+              tier: "3"
+              component: workload
+              audience: workload-owner
             annotations:
               summary: '{{ $value }} ScaledObject(s) still have severity=error deprecation violations'
               description: |
