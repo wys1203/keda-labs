@@ -512,7 +512,11 @@ serverFiles:
                 should be automatic via cert-manager — verify by checking
                 certmanager_certificate_renewal_timestamp_seconds.
 
-      - name: keda-scalers
+      # keda-workloads — Tier 3 observation-only signals for tenant
+      # workloads. Severity: info. Not pageable. These describe a
+      # workload's own behavior (auth/latency/at-max) and are routed
+      # to dashboards rather than the platform pager.
+      - name: keda-workloads
         interval: 30s
         rules:
           - alert: KedaScaledObjectErrors
@@ -522,8 +526,10 @@ serverFiles:
               ) > 0
             for: 5m
             labels:
-              severity: warning
-              component: keda
+              severity: info
+              tier: "3"
+              component: workload
+              audience: workload-owner
             annotations:
               summary: ScaledObject {{ $labels.exported_namespace }}/{{ $labels.scaledObject }} is failing to reconcile
               description: |
@@ -538,8 +544,10 @@ serverFiles:
               ) > 0.1
             for: 10m
             labels:
-              severity: warning
-              component: keda
+              severity: info
+              tier: "3"
+              component: workload
+              audience: workload-owner
             annotations:
               summary: KEDA scaler {{ $labels.scaler }} for {{ $labels.scaledObject }} is failing
               description: |
@@ -555,8 +563,10 @@ serverFiles:
               ) > 1
             for: 10m
             labels:
-              severity: warning
-              component: keda
+              severity: info
+              tier: "3"
+              component: workload
+              audience: workload-owner
             annotations:
               summary: KEDA scaler {{ $labels.scaler }} latency is > 1s
               description: |
@@ -574,8 +584,10 @@ serverFiles:
               )
             for: 10m
             labels:
-              severity: warning
-              component: keda
+              severity: info
+              tier: "3"
+              component: workload
+              audience: workload-owner
             annotations:
               summary: KEDA-managed HPA {{ $labels.horizontalpodautoscaler }} is at max replicas
               description: |
