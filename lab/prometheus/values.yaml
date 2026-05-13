@@ -596,7 +596,10 @@ serverFiles:
                 or the trigger threshold is too tight. Bump maxReplicaCount or
                 tune the trigger.
 
-      - name: demo-cpu-workload
+      # lab-demo — Tier 3 observation alerts for the demo workload.
+      # Severity: info, audience: lab-only. These never page and are
+      # excluded from any production-style rollout of this ruleset.
+      - name: lab-demo
         interval: 30s
         rules:
           - alert: DemoCpuAtMaxReplicas
@@ -610,8 +613,10 @@ serverFiles:
               )
             for: 10m
             labels:
-              severity: warning
-              component: demo
+              severity: info
+              tier: "3"
+              component: workload
+              audience: lab-only
             annotations:
               summary: Demo HPA {{ $labels.horizontalpodautoscaler }} is pinned at max replicas
               description: |
@@ -625,8 +630,10 @@ serverFiles:
               sum(kube_pod_status_phase{namespace="demo-cpu", phase="Pending"}) > 0
             for: 5m
             labels:
-              severity: warning
-              component: demo
+              severity: info
+              tier: "3"
+              component: workload
+              audience: lab-only
             annotations:
               summary: Demo workload has pods stuck Pending
               description: |
