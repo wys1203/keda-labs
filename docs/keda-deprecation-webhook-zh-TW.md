@@ -315,11 +315,13 @@ keda_deprecation_config_generation    # 單調遞增,每次成功 reload +1
 
 加在 `lab/prometheus/values.yaml` 的 `keda-deprecations` group(共 3 條):
 
-| Alert | 觸發條件 | Severity | 意義 |
-|---|---|---|---|
-| `KedaDeprecationWebhookDown` | `up{...} == 0` 持續 5 分鐘 | critical | webhook 失聯;`failurePolicy: Ignore` 期間可能漏網,Controller 端會在恢復後重新補 metric |
-| `KedaDeprecationConfigReloadFailing` | `increase(...{result="error"}[10m]) > 0` | warning | CM 無法 parse,正在用上一份好 config。檢查該 CM 上的 Event |
-| `KedaDeprecationErrorViolationsPresent` | `sum(violations{severity="error"}) > 0` 持續 1 小時 | warning | 還有 fleet 範圍內的 error 級違規,2.18 升級前必須清掉 |
+| Alert | 觸發條件 | Severity | Tier | 意義 |
+|---|---|---|---|---|
+| `KedaDeprecationWebhookDown` | `up{...} == 0` 持續 5 分鐘 | critical | 2 | webhook 失聯;`failurePolicy: Ignore` 期間可能漏網,Controller 端會在恢復後重新補 metric |
+| `KedaDeprecationConfigReloadFailing` | `increase(...{result="error"}[10m]) > 0` 持續 **5 分鐘** | warning | 2 | CM 無法 parse,正在用上一份好 config。`for: 0m → 5m`,單次 parse 失敗不再響(由 2026-05-12 alert-tier audit 調整) |
+| `KedaDeprecationErrorViolationsPresent` | `sum(violations{severity="error"}) > 0` 持續 1 小時 | **info** | 3 | 還有 fleet 範圍內的 error 級違規,2.18 升級前必須清掉。**Tier 3 info,不進 pager**(由 2026-05-12 alert-tier audit 從 warning 降到 info) |
+
+> 補充:本 webhook 的 alert 依新的三層分類:`KedaDeprecationWebhookDown` 與 `KedaDeprecationConfigReloadFailing` 是 Tier 2(platform pager),`KedaDeprecationErrorViolationsPresent` 是 Tier 3(`severity: info`,只給 dashboard 看,不進 pager)。完整 audit 設計見 `docs/superpowers/specs/2026-05-12-keda-platform-alerts-design.md`。
 
 ### 5.3 Grafana Dashboard
 

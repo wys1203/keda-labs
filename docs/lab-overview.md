@@ -2,7 +2,7 @@
 
 End-to-end reference for the kind-based KEDA experimentation lab: architecture, components, dashboards, alerts, SLOs, and how to drive the demo.
 
-Last updated: 2026-05-10
+Last updated: 2026-05-13
 
 ---
 
@@ -158,7 +158,7 @@ Prometheus scrape -> recording rules (5m/1h/6h/7d ratios)
 - **Install script:** `lab/scripts/install-prometheus.sh`
 - **Values:** `lab/prometheus/values.yaml` (562 lines — recording rules, alerting rules, scrape relabel)
 - **Scrape config:** Default `kubernetes-service-endpoints` job picks up KEDA via the chart's Service annotations. A `metric_relabel_configs` block on that job rewrites KEDA-workload-metric labels (`keda_resource_*`, `keda_scaled_object_*`, `keda_scaler_*`) to ServiceMonitor semantics: `namespace=platform-keda`, `exported_namespace=<scaledobject ns>`. Other scrape targets (cAdvisor, kube-state-metrics) are untouched.
-- **Recording / alerting rules:** Five rule groups (`keda-platform-slo`, `keda-control-plane`, `keda-scalers`, `demo-cpu-workload`). See Section 6.
+- **Recording / alerting rules:** Six rule groups (`stdout-sink`, `keda-platform-slo`, `keda-control-plane`, `keda-deprecations`, `keda-workloads`, `lab-demo`) organized into a three-tier audience-aware structure. See Section 6.
 - **Alertmanager:** Single route, `receiver: stdout-sink`, webhook to `alert-stdout-sink.monitoring.svc.cluster.local:8080/`. Group by `alertname,severity`; group_wait 10s, repeat 5m.
 - **kube-state-metrics:** Uses local `dhi.io/kube-state-metrics:2` image (Docker Hardened Image, preloaded into kind). `metricLabelsAllowlist` exposes node labels `topology.kubernetes.io/zone`, `kubernetes.io/hostname`, `node-routable`, and namespace label `prodsuite`.
 - **node-exporter:** DaemonSet on every node, default config.
@@ -231,43 +231,52 @@ All three dashboards live in `lab/grafana/dashboards/` (lab core) + the KDW dash
 
 ## 6. Alerts catalog
 
-All rules live in `lab/prometheus/values.yaml` under `serverFiles.alerting_rules.yml.groups`. Severity values are `critical` and `warning`; an additional label `component` (`keda`, `keda-platform-slo`, `demo`) groups them in Alertmanager.
+All rules live in `lab/prometheus/values.yaml` under `serverFiles.alerting_rules.yml.groups`. The ruleset is organized into a **three-tier audience-aware structure** — see the design spec at `docs/superpowers/specs/2026-05-12-keda-platform-alerts-design.md` for the full rationale.
 
-### Control-plane health (`keda-control-plane`)
+Every alert carries four labels:
 
-| Name | Severity | Expr summary | Trigger condition | Audience |
-| --- | --- | --- | --- | --- |
-| `KedaOperatorDown` | critical | `absent(up{...keda-operator}==1)` | No healthy operator scrape sample for 5m | KEDA platform on-call |
-| `KedaMetricsApiServerDown` | critical | `absent(up{...metrics-apiserver}==1)` | No healthy metrics-apiserver scrape for 5m | KEDA platform on-call |
-| `KedaAdmissionWebhooksDown` | warning | `absent(up{...admission-webhooks}==1)` | No healthy admission-webhook scrape for 10m | KEDA platform team |
-| `KedaContainerCpuThrottling` | warning | `>10%` of CFS periods throttled per KEDA container, 5m rate | Throttled >10% sustained 10m — set CPU limit too low | KEDA platform team |
+- `severity`: `critical` (pager) / `warning` (ticket) / `info` (dashboard-only, no routing)
+- `tier`: `"1"` (SLO burn-rate) / `"2"` (component cause) / `"3"` (observation)
+- `component`: one of `keda-operator`, `keda-metrics-apiserver`, `keda-admission-webhooks`, `keda-deprecation-webhook`, `cert-manager`, `workload`
+- `audience`: `platform` (KEDA platform team) / `workload-owner` (tenant team) / `lab-only` (excluded from production rollout)
 
-### Reconcile / scaler (`keda-control-plane` + `keda-scalers`)
+### Tier overview
 
-| Name | Group | Severity | Expr summary | Trigger condition | Audience |
-| --- | --- | --- | --- | --- | --- |
-| `KedaReconcileErrors` | keda-control-plane | warning | rate of `controller_runtime_reconcile_errors_total` > 0 | Any controller reconcile error sustained 10m | KEDA platform team |
-| `KedaWorkqueueBacklog` | keda-control-plane | warning | `max(workqueue_depth{...})` > 25 | Workqueue depth >25 sustained 10m | KEDA platform team |
-| `KedaScaledObjectErrors` | keda-scalers | warning | rate of `keda_scaled_object_errors_total` > 0 | Any ScaledObject error sustained 5m | Workload team (per `exported_namespace`) |
-| `KedaScalerErrors` | keda-scalers | warning | rate of `keda_scaler_detail_errors_total` > 0.1 | >0.1/s scaler error sustained 10m | Workload team |
-| `KedaScalerMetricsLatencyHigh` | keda-scalers | warning | `keda_scaler_metrics_latency_seconds` > 1 | Scaler fetch >1s sustained 10m | Workload team |
-| `KedaScaledObjectAtMaxReplicas` | keda-scalers | warning | HPA `current == max` for `keda-hpa-.*` | Pinned at max sustained 10m | Workload team |
-| `KedaOperatorLeaderChurn` | keda-scalers | warning | `changes(leader_election_master_status[10m]) > 2` | Leader changed >2 times in 10m | KEDA platform team |
+| Group | Tier | Audience | Count |
+|---|---|---|---|
+| `keda-platform-slo` | 1 (SLO burn-rate) | platform | 4 |
+| `keda-control-plane` | 2 (component cause) | platform | 11 |
+| `keda-deprecations` | 2 + 3 (mixed) | platform / workload-owner | 3 |
+| `keda-workloads` | 3 (observation) | workload-owner | 4 |
+| `lab-demo` | 3 (observation) | lab-only | 2 |
 
-### gRPC plumbing (`keda-control-plane`)
+24 alerts total. Tier 3 (`severity: info`) alerts are never pageable.
 
-| Name | Severity | Expr summary | Trigger condition | Audience |
-| --- | --- | --- | --- | --- |
-| `KedaAdapterToOperatorGrpcErrors` | warning | rate of non-OK `keda_internal_metricsservice_grpc_server_handled_total` > 0 | gRPC returning non-OK code sustained 5m | KEDA platform team |
-| `KedaAdapterToOperatorGrpcSilence` | critical | "had traffic 15m ago, silent now" — see body | Sustained traffic in `[10m] offset 15m` AND zero traffic in last 5m, holds 5m | KEDA platform on-call |
+### Tier 2 — Component cause (`keda-control-plane`, `keda-deprecations`)
+
+11 alerts in `keda-control-plane` plus 2 in `keda-deprecations`. All `audience: platform`.
+
+| Name | Group | Severity | Trigger condition |
+| --- | --- | --- | --- |
+| `KedaOperatorDown` | keda-control-plane | critical | No healthy operator scrape sample for 5m |
+| `KedaMetricsApiServerDown` | keda-control-plane | critical | No healthy metrics-apiserver scrape for 5m |
+| `KedaAdmissionWebhooksDown` | keda-control-plane | warning | No healthy admission-webhook scrape for 10m |
+| `KedaAdmissionWebhookLatencyHigh` | keda-control-plane | warning | p99 of `controller_runtime_webhook_latency_seconds` > 1s sustained 10m — admission slow before timeout |
+| `KedaContainerCpuThrottling` | keda-control-plane | warning | KEDA container CPU throttled >10% of CFS periods sustained 10m |
+| `KedaContainerMemoryNearLimit` | keda-control-plane | warning | Working set > 90% of memory limit sustained 15m — pre-OOMKill warning |
+| `KedaWorkqueueBacklog` | keda-control-plane | warning | Workqueue depth > 25 sustained 10m |
+| `KedaAdapterToOperatorGrpcErrors` | keda-control-plane | warning | gRPC returning non-OK code sustained 5m |
+| `KedaAdapterToOperatorGrpcSilence` | keda-control-plane | critical | Sustained traffic 15m ago AND zero traffic now, holds 5m |
+| `KedaOperatorLeaderChurn` | keda-control-plane | warning | Leader changed >2 times in 10m |
+| `KedaCertNearExpiry` | keda-control-plane | warning | Any KEDA-namespace cert expires in <14d, holds 1h — cert-manager renewal failed |
+| `KedaDeprecationWebhookDown` | keda-deprecations | critical | KDW webhook unreachable 5m |
+| `KedaDeprecationConfigReloadFailing` | keda-deprecations | warning | KDW CM parse failing 5m (was 0m — bumped to suppress single transient parse errors) |
 
 The `KedaAdapterToOperatorGrpcSilence` precondition (`> 0.01` in the offset window) ensures fresh clusters that have never run an external trigger never trip the alert. Catches mTLS expiry, wedged operator goroutines, or network partitions — failures that don't surface as non-OK codes because the call never lands.
 
-### Cert health (`keda-scalers`)
+The two new alerts (`KedaAdmissionWebhookLatencyHigh` and `KedaContainerMemoryNearLimit`) fill platform-coverage gaps the SLO can't see: a `up==1` but slow webhook, and OOM-precursor memory pressure.
 
-| Name | Severity | Expr summary | Trigger condition | Audience |
-| --- | --- | --- | --- | --- |
-| `KedaCertNearExpiry` | warning | `(min(certmanager_certificate_expiration_timestamp_seconds{ns=platform-keda}) - time())/86400 < 14` | Any KEDA cert expires in <14d, sustained 1h | KEDA platform team |
+`KedaReconcileErrors` was dropped: redundant with the Tier 1 SLO burn-rate which measures the same SLI under a multi-window multi-burn-rate pattern that's more flap-resistant.
 
 ### SLO burn rate (`keda-platform-slo`)
 
@@ -290,12 +299,21 @@ Reconcile (`T=99%`, budget `1%`): fast 14.4% / slow 6%. Operator UP (`T=99.9%`, 
 
 **Two-window AND.** Both alerts require the long window AND the short window to exceed the threshold. The long window proves the burn is real (not a 30-second blip); the short window proves it is current (not stale data from hours ago). This is the standard Google SRE workbook ch.6 pattern; it minimises false alarms and gives faster recovery than a single long window.
 
-### Demo workload (`demo-cpu-workload`)
+### Tier 3 — Observation (`keda-workloads`, `keda-deprecations`, `lab-demo`)
 
-| Name | Severity | Expr summary | Trigger condition | Audience |
-| --- | --- | --- | --- | --- |
-| `DemoCpuAtMaxReplicas` | warning | demo HPA `current == max` | At max sustained 10m | Demo (informational; flips during `make load-test LOAD_DURATION=900`) |
-| `DemoCpuPodsPending` | warning | `sum(kube_pod_status_phase{ns=demo-cpu,phase=Pending}) > 0` | Any Pending pod sustained 5m | Demo / cluster admin (out of CPU) |
+7 alerts, all `severity: info`. **Never pageable**, never routed — they exist for dashboards and business-hours review.
+
+| Name | Group | Audience | Trigger condition |
+| --- | --- | --- | --- |
+| `KedaScaledObjectErrors` | keda-workloads | workload-owner | Any ScaledObject error sustained 5m |
+| `KedaScalerErrors` | keda-workloads | workload-owner | >0.1/s scaler error sustained 10m |
+| `KedaScalerMetricsLatencyHigh` | keda-workloads | workload-owner | Scaler fetch >1s sustained 10m |
+| `KedaScaledObjectAtMaxReplicas` | keda-workloads | workload-owner | HPA pinned at max sustained 10m |
+| `KedaDeprecationErrorViolationsPresent` | keda-deprecations | workload-owner | fleet has error-severity deprecation violations for 1h — debt inventory, not outage |
+| `DemoCpuAtMaxReplicas` | lab-demo | lab-only | demo HPA at max sustained 10m (flips during `make load-test`) |
+| `DemoCpuPodsPending` | lab-demo | lab-only | demo pods Pending sustained 5m |
+
+`audience: lab-only` alerts are explicitly excluded from any production-style rollout of this ruleset.
 
 ---
 
