@@ -21,17 +21,28 @@
   "id": null,
   "links": [
     {
-      "title": "KEDA Operations",
-      "type": "dashboards",
-      "tags": [
-        "keda",
-        "operations"
-      ],
       "asDropdown": false,
       "icon": "external link",
-      "includeVars": false,
+      "includeVars": true,
       "keepTime": true,
-      "targetBlank": false
+      "tags": [],
+      "targetBlank": false,
+      "title": "← Back to Workload Inventory",
+      "tooltip": "",
+      "type": "link",
+      "url": "/d/keda-workload-inventory/keda-workload-inventory"
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "← Back to Workload Detail",
+      "tooltip": "",
+      "type": "link",
+      "url": "/d/keda-workload-detail/keda-workload-detail"
     }
   ],
   "liveNow": false,
@@ -640,7 +651,7 @@
       "type": "timeseries",
       "id": 202,
       "title": "CPU utilization vs threshold (50%)",
-      "description": "Mean of per-pod (usage / request) \u2014 what the HPA sees. Above the dashed line, KEDA scales up.",
+      "description": "Mean of per-pod (usage / request) — what the HPA sees. Above the dashed line, KEDA scales up.",
       "gridPos": {
         "h": 9,
         "w": 12,
@@ -968,8 +979,9 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "KEDA Demo - CPU Autoscaling",
-  "uid": "keda-demo-cpu-scaling",
+  "title": "KEDA Workload — CPU Deep View",
+  "uid": "keda-workload-cpu",
   "version": 3,
-  "weekStart": ""
+  "weekStart": "",
+  "description": "Deep CPU view for any ScaledObject using cpu/memory triggers. Adds per-pod cAdvisor CPU detail and zone-spread visualization on top of the generic Workload Detail signals."
 }
