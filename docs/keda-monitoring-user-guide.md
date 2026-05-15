@@ -19,58 +19,30 @@ On this platform, KEDA is installed in the `platform-keda` namespace and runs 2 
 
 ---
 
-## The three Grafana dashboards for you
+## The Grafana dashboards for you
 
 Access Grafana via `make grafana` (opens `http://localhost:3000` with credentials `admin` / `admin`). All KEDA dashboards live in the **KEDA Lab** folder. Each dashboard has three filter buttons at the top:
 - **Datasource** — picker for Prometheus instance
 - **Prodsuite** — filter by namespace label `prodsuite` (typically `Demo`, `Platform`, `legacy`)
-- **Namespace** — multi-select scoped to your chosen prodsuite
+- **Namespace** — scoped to your chosen prodsuite
 
-### KEDA Demo — CPU Autoscaling
+You don't need to clone or customize any of these. The Workload Inventory + Workload Detail dashboards are **scaler-agnostic** and built from per-HPA metrics that work uniformly for every trigger type the platform supports (cpu, memory, prometheus, nats-jetstream, redis, cron, metrics-api).
 
-**UID:** `keda-demo-cpu-scaling`
+| Dashboard | UID | When to use |
+|---|---|---|
+| **KEDA Workload Inventory** | `keda-workload-inventory` | **Start here.** Find your ScaledObject in the main table, click into Detail. Shows the full catalog with trigger type, threshold, replicas, paused state, and recent errors. |
+| **KEDA Workload Detail** | `keda-workload-detail` | Drill into one ScaledObject: current vs desired replicas, metric value vs threshold, plus scaler errors/latency for external triggers. Pick `Namespace` and `ScaledObject` from the template variables. |
+| **KEDA Workload — CPU Deep View** | `keda-workload-cpu` | Extra detail for cpu/memory triggers: per-pod cAdvisor CPU usage vs the 50% trigger threshold, pod zone spread, currently-firing alerts. Useful when troubleshooting CPU scaling specifically. |
+| **KEDA Operations** | `keda-operations` | Platform-team's KEDA control-plane health view. Use to confirm "is KEDA itself healthy?" before opening a support ticket. Look for `Operator UP`, `Metrics API Server UP`, `Admission Webhooks UP` to be green. |
+| **KEDA Deprecations** | `keda-deprecations` | Track deprecations that will break on KEDA 2.18. Filter by your namespace to see violations in your workloads (see Section 4). |
 
-This is the **template dashboard for your own workload monitoring.** It shows the `cpu-demo` workload — a Deployment with a CPU `ScaledObject` that scales based on utilization.
+### Click-through
 
-What you'll see:
-- **Replicas** — current vs desired vs min vs max; an indicator showing if you're stuck at max for 10+ minutes.
-- **CPU** — per-pod CPU usage (cores) and utilization percentage vs the 50% threshold that triggers scaling.
-- **Pods & Zones** — how many pods are Running, Pending, or in other phases; zone spread across dc1/dc2/dc3.
-- **Active Alerts** — a live table of all KEDA + demo alerts currently firing.
+The Inventory's main table has a clickable **ScaledObject** column. Clicking opens the Detail dashboard pre-filtered to that ScaledObject — no manual variable setup needed. Detail's header has return links to Inventory and the CPU Deep view.
 
-**How to use it:** Duplicate this dashboard and customize the `Namespace` filter to your own namespace. Update panel queries to reference your own `ScaledObject` name and metric source. This becomes your workload's scaling health dashboard.
+### Why Detail's "Scaler Errors / Latency / Active State" row reads "No data" for cpu/memory
 
-### KEDA Operations
-
-**UID:** `keda-operations`
-
-This is the **platform team's control-plane health dashboard.** You use it to confirm "Is KEDA healthy?" before opening a support ticket.
-
-Key panels:
-- **Control plane health** — operator UP (green=healthy), metrics-apiserver UP, admission-webhooks UP, leader election status, and webhook latency p99.
-- **Workload outcomes** — a table of all KEDA-managed HPAs and their replica counts (useful to spot if your HPA is stuck in a weird state).
-- **Adapter ↔ Operator gRPC** — latency and error rates of the internal channel between the metrics-apiserver and operator (only relevant for external triggers like Prometheus).
-- **Component resource usage** — CPU and memory per KEDA pod.
-- **Certificate expiry** — minimum days until any KEDA-namespace cert expires (cert-manager renewal failures surface here).
-
-**How to use it:** Set `Prodsuite=Platform` and look at the green/red stat panels at the top. If `Operator UP`, `Metrics API Server UP`, and `Admission Webhooks UP` are all green, KEDA is healthy. If any are red, that's a platform ticket.
-
-### KEDA Deprecations
-
-**UID:** `keda-deprecations`
-
-This dashboard tracks deprecations in the KEDA `ScaledObject` spec that will break on KEDA 2.18 upgrade.
-
-What you'll see:
-- **Violation counts** — total number of error-level, warning-level, and exempted violations.
-- **Violations table** — list of all deprecated specs in your namespace: namespace, object name, trigger index, field name, rule ID, and severity.
-- **Migration progress** — how your violations are trending over time.
-
-**Relevant only if:**
-- Your platform is planning a KEDA 2.16 → 2.18 upgrade.
-- You are using the old `triggers[].metadata.type` field on CPU or memory triggers (the new field is `triggers[].metricType`).
-
-See Section 4 below for more detail on the deprecation webhook and how to fix violations.
+CPU and memory triggers bypass KEDA's external-scaler path entirely — the HPA reads cAdvisor metrics directly via metrics-server. Those three panels are populated only for external scalers (prometheus, nats-jetstream, redis, cron, metrics-api). When you select a cpu-trigger ScaledObject, "No data" there is correct, not a bug. For deeper CPU visibility, follow the header link to the CPU Deep View dashboard.
 
 ---
 
@@ -234,7 +206,8 @@ The platform team will use this to quickly diagnose whether the issue is in KEDA
 
 - **`docs/lab-overview.md`** — comprehensive reference for the entire lab, including architecture, alert ruleset, SLO definitions, and quickstart. Platform-team-oriented; more depth and internals.
 - **`docs/superpowers/specs/2026-05-12-keda-platform-alerts-design.md`** — the design rationale behind the three-tier alert structure. For context on why certain alerts exist and how they interact.
-- **`docs/keda-deprecation-webhook-zh-TW.md`** — KDW operator manual in Traditional Chinese. Covers the webhook's architecture, ConfigMap schema, multi-cluster rollout, and day-2 operations. An English version is planned.
+- **`docs/superpowers/specs/2026-05-14-keda-workload-dashboards-design.md`** — the design rationale behind the Inventory + Detail + CPU Deep View dashboards (scaler-agnostic, no per-workload cloning).
+- **`docs/keda-deprecation-webhook-zh-TW.md`** — KDW operator manual in Traditional Chinese. Covers the webhook's architecture, ConfigMap schema, multi-cluster rollout, and day-2 operations.
 
 ---
 
@@ -242,7 +215,7 @@ The platform team will use this to quickly diagnose whether the issue is in KEDA
 
 | What you need | How to access it |
 |---|---|
-| See your HPA scaling in real time | Duplicate the `keda-demo-cpu-scaling` dashboard, filter to your namespace, update panel queries to your ScaledObject/metric. |
+| See your HPA scaling in real time | Open **KEDA Workload Inventory**, find your ScaledObject in the table, click into Detail. |
 | Check if KEDA is healthy | KEDA Operations dashboard, `Prodsuite=Platform`. Look for green on "Operator UP", "Metrics API Server UP", "Admission Webhooks UP". |
 | Find out why your ScaledObject was rejected | Read the kubectl error message carefully. If it mentions `[KEDA001]`, it's a deprecation — apply the fix. Otherwise, open a platform ticket. |
 | Track deprecation violations in your namespace | KEDA Deprecations dashboard, filter by your namespace. Panel #6 shows the table of violations. |
