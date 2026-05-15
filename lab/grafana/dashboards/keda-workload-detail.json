@@ -1,0 +1,551 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "← KEDA Workload Inventory",
+      "tooltip": "",
+      "type": "link",
+      "url": "/d/keda-workload-inventory/keda-workload-inventory"
+    }
+  ],
+  "liveNow": false,
+  "panels": [
+    {
+      "id": 200,
+      "type": "stat",
+      "title": "Current Replicas",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"$namespace\", horizontalpodautoscaler=\"keda-hpa-$scaledobject\"}"
+        }
+      ]
+    },
+    {
+      "id": 201,
+      "type": "stat",
+      "title": "Desired",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"$namespace\", horizontalpodautoscaler=\"keda-hpa-$scaledobject\"}"
+        }
+      ]
+    },
+    {
+      "id": 202,
+      "type": "stat",
+      "title": "Min",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "kube_horizontalpodautoscaler_spec_min_replicas{namespace=\"$namespace\", horizontalpodautoscaler=\"keda-hpa-$scaledobject\"}"
+        }
+      ]
+    },
+    {
+      "id": 203,
+      "type": "stat",
+      "title": "Max",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"$namespace\", horizontalpodautoscaler=\"keda-hpa-$scaledobject\"}"
+        }
+      ]
+    },
+    {
+      "id": 204,
+      "type": "stat",
+      "title": "External Triggers Active",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(keda_scaler_active{scaledObject=\"$scaledobject\", exported_namespace=\"$namespace\"}) or vector(0)"
+        }
+      ]
+    },
+    {
+      "id": 205,
+      "type": "stat",
+      "title": "Paused",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "keda_scaled_object_paused{scaledObject=\"$scaledobject\", exported_namespace=\"$namespace\"}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "▶ Active",
+                  "color": "green"
+                },
+                "1": {
+                  "text": "⏸ Paused",
+                  "color": "red"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 210,
+      "type": "timeseries",
+      "title": "Replicas over time",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 3
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "current",
+          "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"$namespace\", horizontalpodautoscaler=\"keda-hpa-$scaledobject\"}"
+        },
+        {
+          "refId": "B",
+          "legendFormat": "desired",
+          "expr": "kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"$namespace\", horizontalpodautoscaler=\"keda-hpa-$scaledobject\"}"
+        },
+        {
+          "refId": "C",
+          "legendFormat": "min",
+          "expr": "kube_horizontalpodautoscaler_spec_min_replicas{namespace=\"$namespace\", horizontalpodautoscaler=\"keda-hpa-$scaledobject\"}"
+        },
+        {
+          "refId": "D",
+          "legendFormat": "max",
+          "expr": "kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"$namespace\", horizontalpodautoscaler=\"keda-hpa-$scaledobject\"}"
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "min"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    6,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "max"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    6,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 220,
+      "type": "timeseries",
+      "title": "Metric Value vs Threshold",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{metric_name}} actual",
+          "expr": "kube_horizontalpodautoscaler_status_target_metric{namespace=\"$namespace\", horizontalpodautoscaler=\"keda-hpa-$scaledobject\"}"
+        },
+        {
+          "refId": "B",
+          "legendFormat": "{{metric_name}} threshold",
+          "expr": "kube_horizontalpodautoscaler_spec_target_metric{namespace=\"$namespace\", horizontalpodautoscaler=\"keda-hpa-$scaledobject\"}"
+        }
+      ]
+    },
+    {
+      "id": 221,
+      "type": "table",
+      "title": "Triggers",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "instant": true,
+          "expr": "kube_horizontalpodautoscaler_spec_target_metric{namespace=\"$namespace\", horizontalpodautoscaler=\"keda-hpa-$scaledobject\"}"
+        },
+        {
+          "refId": "B",
+          "format": "table",
+          "instant": true,
+          "expr": "kube_horizontalpodautoscaler_status_target_metric{namespace=\"$namespace\", horizontalpodautoscaler=\"keda-hpa-$scaledobject\"}"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "Value #A",
+            "renamePattern": "Threshold"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "Value #B",
+            "renamePattern": "Current"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "app_kubernetes_io_component": true,
+              "app_kubernetes_io_instance": true,
+              "app_kubernetes_io_managed_by": true,
+              "app_kubernetes_io_name": true,
+              "app_kubernetes_io_part_of": true,
+              "app_kubernetes_io_version": true,
+              "helm_sh_chart": true,
+              "instance": true,
+              "job": true,
+              "service": true,
+              "node": true,
+              "namespace": true,
+              "horizontalpodautoscaler": true
+            },
+            "indexByName": {
+              "metric_name": 0,
+              "metric_target_type": 1,
+              "Threshold": 2,
+              "Current": 3
+            },
+            "renameByName": {
+              "metric_name": "Trigger",
+              "metric_target_type": "Type"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 230,
+      "type": "timeseries",
+      "title": "Scaler Errors (external only)",
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 20
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{scaler}}",
+          "expr": "sum by (scaler) (rate(keda_scaler_errors_total{scaledObject=\"$scaledobject\", exported_namespace=\"$namespace\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 231,
+      "type": "timeseries",
+      "title": "Fetch Latency p95 (external only)",
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 20
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{scaler}}",
+          "expr": "histogram_quantile(0.95, sum by (scaler, le) (rate(keda_scaler_metrics_latency_seconds_bucket{scaledObject=\"$scaledobject\", exported_namespace=\"$namespace\"}[5m])))"
+        }
+      ]
+    },
+    {
+      "id": 232,
+      "type": "timeseries",
+      "title": "Active State (external only)",
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 20
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{scaler}}",
+          "expr": "keda_scaler_active{scaledObject=\"$scaledobject\", exported_namespace=\"$namespace\"}"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "keda",
+    "workloads"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(kube_namespace_labels, label_prodsuite)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Prodsuite",
+        "multi": true,
+        "name": "prodsuite",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(kube_namespace_labels, label_prodsuite)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(kube_namespace_labels{label_prodsuite=~\"$prodsuite\"}, namespace)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Namespace",
+        "multi": false,
+        "name": "namespace",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(kube_namespace_labels{label_prodsuite=~\"$prodsuite\"}, namespace)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "name": "scaledobject",
+        "type": "query",
+        "label": "ScaledObject",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": "label_values(kube_horizontalpodautoscaler_info{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"}, horizontalpodautoscaler)",
+        "regex": "/keda-hpa-(.+)/",
+        "multi": false,
+        "includeAll": false,
+        "refresh": 2,
+        "sort": 1,
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        }
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "KEDA Workload Detail",
+  "uid": "keda-workload-detail",
+  "version": 12,
+  "weekStart": "",
+  "description": "Per-ScaledObject drilldown: replicas, trigger value vs threshold, scaler errors/latency for external scalers. Pick a Namespace and ScaledObject from the template variables."
+}

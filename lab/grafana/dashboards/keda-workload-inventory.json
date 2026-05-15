@@ -1,0 +1,607 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "KEDA Workload Detail →",
+      "tooltip": "",
+      "type": "link",
+      "url": "/d/keda-workload-detail/keda-workload-detail"
+    }
+  ],
+  "liveNow": false,
+  "panels": [
+    {
+      "id": 100,
+      "type": "stat",
+      "title": "Total ScaledObjects",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(kube_horizontalpodautoscaler_info{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 101,
+      "type": "stat",
+      "title": "Pinned at Max",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count((kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"} == on(namespace, horizontalpodautoscaler) kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"}) > 0) or vector(0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 102,
+      "type": "stat",
+      "title": "Paused",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(keda_scaled_object_paused{exported_namespace=~\"$namespace\"} == 1) or vector(0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 103,
+      "type": "stat",
+      "title": "With Errors (1h)",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(increase(keda_scaled_object_errors_total{exported_namespace=~\"$namespace\"}[1h]) > 0) or vector(0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 110,
+      "type": "table",
+      "title": "ScaledObject Inventory",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "instant": true,
+          "expr": "sum by (namespace, horizontalpodautoscaler, metric_name, metric_target_type) (kube_horizontalpodautoscaler_spec_target_metric{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"})"
+        },
+        {
+          "refId": "B",
+          "format": "table",
+          "instant": true,
+          "expr": "sum by (namespace, horizontalpodautoscaler, scaletargetref_kind, scaletargetref_name) (kube_horizontalpodautoscaler_info{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"})"
+        },
+        {
+          "refId": "C",
+          "format": "table",
+          "instant": true,
+          "expr": "sum by (namespace, horizontalpodautoscaler) (kube_horizontalpodautoscaler_spec_min_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"})"
+        },
+        {
+          "refId": "D",
+          "format": "table",
+          "instant": true,
+          "expr": "sum by (namespace, horizontalpodautoscaler) (kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"})"
+        },
+        {
+          "refId": "E",
+          "format": "table",
+          "instant": true,
+          "expr": "sum by (namespace, horizontalpodautoscaler) (kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"})"
+        },
+        {
+          "refId": "F",
+          "format": "table",
+          "instant": true,
+          "expr": "sum by (namespace, horizontalpodautoscaler) (kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"})"
+        },
+        {
+          "refId": "G",
+          "format": "table",
+          "instant": true,
+          "expr": "sum by (namespace, horizontalpodautoscaler) (label_replace(label_replace(sum by (exported_namespace, scaledObject) (keda_scaled_object_paused{exported_namespace=~\"$namespace\"}), \"namespace\", \"$1\", \"exported_namespace\", \"(.+)\"), \"horizontalpodautoscaler\", \"keda-hpa-$1\", \"scaledObject\", \"(.+)\"))"
+        },
+        {
+          "refId": "H",
+          "format": "table",
+          "instant": true,
+          "expr": "sum by (namespace, horizontalpodautoscaler) (label_replace(label_replace(sum by (exported_namespace, scaledObject) (increase(keda_scaled_object_errors_total{exported_namespace=~\"$namespace\"}[1h])), \"namespace\", \"$1\", \"exported_namespace\", \"(.+)\"), \"horizontalpodautoscaler\", \"keda-hpa-$1\", \"scaledObject\", \"(.+)\"))"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "Value #A",
+            "renamePattern": "Threshold"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "Value #D",
+            "renamePattern": "Current"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "Value #E",
+            "renamePattern": "Desired"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "Value #C",
+            "renamePattern": "Min"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "Value #F",
+            "renamePattern": "Max"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "Value #G",
+            "renamePattern": "Paused"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "Value #H",
+            "renamePattern": "Errors 1h"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value #B": true,
+              "__name__": true,
+              "app": true,
+              "app_kubernetes_io_component": true,
+              "app_kubernetes_io_instance": true,
+              "app_kubernetes_io_managed_by": true,
+              "app_kubernetes_io_name": true,
+              "app_kubernetes_io_part_of": true,
+              "app_kubernetes_io_version": true,
+              "helm_sh_chart": true,
+              "instance": true,
+              "job": true,
+              "service": true,
+              "node": true,
+              "container": true,
+              "scaletargetref_api_version": true
+            },
+            "indexByName": {
+              "namespace": 0,
+              "horizontalpodautoscaler": 1,
+              "scaletargetref_kind": 2,
+              "scaletargetref_name": 3,
+              "metric_name": 4,
+              "metric_target_type": 5,
+              "Threshold": 6,
+              "Min": 7,
+              "Current": 8,
+              "Desired": 9,
+              "Max": 10,
+              "Paused": 11,
+              "Errors 1h": 12
+            },
+            "renameByName": {
+              "horizontalpodautoscaler": "ScaledObject",
+              "scaletargetref_kind": "Target Kind",
+              "scaletargetref_name": "Target Name",
+              "metric_name": "Trigger",
+              "metric_target_type": "Target Type"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ScaledObject"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^keda-hpa-(.+)$",
+                      "result": {
+                        "text": "$1"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open Workload Detail",
+                    "url": "/d/keda-workload-detail/keda-workload-detail?var-namespace=${__data.fields.namespace}&var-scaledobject=${__value.text}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 120,
+      "type": "piechart",
+      "title": "Trigger Type Distribution",
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count by (trigger_type) (label_replace(kube_horizontalpodautoscaler_spec_target_metric{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"}, \"trigger_type\", \"$1\", \"metric_name\", \"^s\\\\d+-(.+)$\") or label_replace(kube_horizontalpodautoscaler_spec_target_metric{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\", metric_name=~\"cpu|memory\"}, \"trigger_type\", \"$1\", \"metric_name\", \"(cpu|memory)\"))",
+          "legendFormat": "{{trigger_type}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right"
+        }
+      }
+    },
+    {
+      "id": 121,
+      "type": "timeseries",
+      "title": "Active External Scalers (cpu/memory not represented)",
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (scaler) (keda_scaler_active{exported_namespace=~\"$namespace\"})",
+          "legendFormat": "{{scaler}}"
+        }
+      ]
+    },
+    {
+      "id": 130,
+      "type": "table",
+      "title": "Recent Errors (last 1h)",
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "instant": true,
+          "expr": "topk(20, increase(keda_scaled_object_errors_total{exported_namespace=~\"$namespace\"}[1h])) > 0"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "app_kubernetes_io_component": true,
+              "app_kubernetes_io_instance": true,
+              "app_kubernetes_io_managed_by": true,
+              "app_kubernetes_io_name": true,
+              "app_kubernetes_io_part_of": true,
+              "app_kubernetes_io_version": true,
+              "helm_sh_chart": true,
+              "instance": true,
+              "job": true,
+              "service": true,
+              "node": true
+            },
+            "indexByName": {
+              "exported_namespace": 0,
+              "scaledObject": 1,
+              "Value": 2
+            },
+            "renameByName": {
+              "exported_namespace": "Namespace",
+              "scaledObject": "ScaledObject",
+              "Value": "Errors (1h)"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "keda",
+    "workloads"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(kube_namespace_labels, label_prodsuite)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Prodsuite",
+        "multi": true,
+        "name": "prodsuite",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(kube_namespace_labels, label_prodsuite)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(kube_namespace_labels{label_prodsuite=~\"$prodsuite\"}, namespace)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Namespace",
+        "multi": true,
+        "name": "namespace",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(kube_namespace_labels{label_prodsuite=~\"$prodsuite\"}, namespace)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "KEDA Workload Inventory",
+  "uid": "keda-workload-inventory",
+  "version": 12,
+  "weekStart": "",
+  "description": "Cross-namespace ScaledObject inventory. Find any ScaledObject across the cluster by namespace and trigger type. Click a row to drill into KEDA Workload Detail."
+}
