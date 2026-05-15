@@ -17,7 +17,7 @@ High-level features:
 - KEDA `2.16.1` with operator + metrics-apiserver + admission-webhooks Prometheus endpoints all enabled.
 - cert-manager `v1.16.2` issues KEDA's webhook / metrics-apiserver TLS certs from a self-signed CA (replaces KEDA's in-operator generator).
 - Prometheus + Alertmanager pre-wired to a stdout webhook sink so the alert pipeline is observable end-to-end with no SaaS dependency.
-- Grafana provisioned via ConfigMap with three dashboards: monitoring stack, KEDA operations, and the CPU-demo workload.
+- Grafana provisioned via ConfigMap with five lab-core dashboards (monitoring stack, KEDA operations, workload inventory, workload detail, workload CPU deep view) plus the remotely-fetched KEDA Deprecations dashboard from the standalone keda-deprecation-webhook chart.
 - Recording + multi-window multi-burn-rate SLO alert rules for the KEDA control plane (reconcile success, operator UP).
 - Two living demo workloads (resource trigger and Prometheus external trigger) plus a "legacy" workload using KEDA's deprecated CPU-trigger form.
 - One-command install (`make up`), parallel image prepull, idempotent re-installs, and verification scripts.
