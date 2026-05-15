@@ -2,7 +2,7 @@
 
 End-to-end reference for the kind-based KEDA experimentation lab: architecture, components, dashboards, alerts, SLOs, and how to drive the demo.
 
-Last updated: 2026-05-13
+Last updated: 2026-05-15
 
 ---
 
@@ -192,7 +192,7 @@ Prometheus scrape -> recording rules (5m/1h/6h/7d ratios)
 
 ## 5. Dashboards
 
-All three dashboards live in `lab/grafana/dashboards/` (lab core) + the KDW dashboard (fetched from the [wys1203/keda-deprecation-webhook](https://github.com/wys1203/keda-deprecation-webhook) standalone repo at install time) and are provisioned into the **KEDA Lab** Grafana folder. The webhook itself is now external; `make install-webhook` installs it via Helm from the standalone repo. Each exposes three top-bar template variables: `Datasource` (Prometheus picker), `Prodsuite` (driven by namespace label `prodsuite`), and `Namespace` (multi-select, scoped to the chosen prodsuite).
+Five dashboards live in `lab/grafana/dashboards/` (lab core) + the KDW dashboard (fetched from the [wys1203/keda-deprecation-webhook](https://github.com/wys1203/keda-deprecation-webhook) standalone repo at install time) and are provisioned into the **KEDA Lab** Grafana folder. The webhook itself is now external; `make install-webhook` installs it via Helm from the standalone repo. Each exposes three top-bar template variables: `Datasource`, `Prodsuite`, `Namespace`. The Workload Detail dashboard additionally exposes `ScaledObject` (single-select).
 
 ### `monitoring-stack` — Monitoring Stack
 
@@ -217,15 +217,27 @@ All three dashboards live in `lab/grafana/dashboards/` (lab core) + the KDW dash
   - **KEDA component resource usage** — CPU/RAM per pod.
   - **Cert-manager certificates** — min days to expiry, certs not Ready, per-cert expiry table, days-to-expiry over time.
 
-### `keda-demo-cpu-scaling` — KEDA Demo - CPU Autoscaling
+### `keda-workload-inventory` — KEDA Workload Inventory
 
-- **UID:** `keda-demo-cpu-scaling`
-- **Audience:** Workload owner / demo audience (watching scaling react to load)
-- **Purpose:** Tells the scaling story for the `cpu-demo` workload. Rows:
-  - **Replicas** — current vs desired vs min vs max, "At max for 10m?" indicator, Pods Pending, Replicas over time.
-  - **CPU** — per-pod CPU usage (cores), CPU utilization vs the 50% trigger threshold.
-  - **Pods & scheduling** — Pods by phase, Pods by zone (uses `topology.kubernetes.io/zone` from kube-state-metrics).
-  - **Active alerts** — table of currently firing KEDA + demo alerts.
+- **UID:** `keda-workload-inventory`
+- **Audience:** Workload owner (find their ScaledObjects); also platform on triage ("where is metrics-api used?")
+- **Purpose:** Scaler-agnostic catalog of every ScaledObject in scope. Source queries combine `kube_horizontalpodautoscaler_*` (covers cpu/memory + external) with `keda_scaled_object_*` (paused / errors). Works for all 7 production trigger types in use (cpu, memory, prometheus, nats-jetstream, redis, cron, metrics-api).
+- **Panels (8):** Total SOs + Pinned-at-Max + Paused + With-Errors-1h (4 stats); Main Inventory Table with data-link to Detail; Trigger Type Distribution (pie); Active External Scalers timeline; Recent Errors table.
+- **Click-through:** Click a row's ScaledObject column to drill into `keda-workload-detail`.
+
+### `keda-workload-detail` — KEDA Workload Detail
+
+- **UID:** `keda-workload-detail`
+- **Audience:** Workload owner (one SO drilldown)
+- **Purpose:** Pick `Namespace` and `ScaledObject` from template variables. Generic per-SO view via the same HPA + KEDA metrics — works for all trigger types.
+- **Panels (12):** Current/Desired/Min/Max/External Triggers Active/Paused (6 stats); Replicas over time; Metric Value vs Threshold; Trigger Detail table; Scaler Errors / Fetch Latency p95 / Active State (3 timeseries — populated for external scalers; "No data" for cpu/memory-only SOs, which is correct since the resource-trigger path bypasses KEDA's adapter).
+
+### `keda-workload-cpu` — KEDA Workload — CPU Deep View
+
+- **UID:** `keda-workload-cpu`
+- **Audience:** Workload owner with cpu/memory triggers (deeper view than generic Detail)
+- **Purpose:** Adds per-pod cAdvisor CPU + zone-spread on top of the generic Workload Detail signals. Useful when troubleshooting cpu trigger behavior specifically. Renamed from the original `keda-demo-cpu-scaling` dashboard (queries unchanged — already use `$namespace` template variable, default bumped to `All`).
+- **Panels:** Replicas (current vs desired vs min vs max, "At max for 10m?" indicator, Pods Pending, Replicas over time); CPU (per-pod CPU usage in cores, CPU utilization vs trigger threshold); Pods by phase + zone (using `topology.kubernetes.io/zone`); Active alerts table.
 
 ---
 
