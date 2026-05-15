@@ -17,7 +17,7 @@ High-level features:
 - KEDA `2.16.1` with operator + metrics-apiserver + admission-webhooks Prometheus endpoints all enabled.
 - cert-manager `v1.16.2` issues KEDA's webhook / metrics-apiserver TLS certs from a self-signed CA (replaces KEDA's in-operator generator).
 - Prometheus + Alertmanager pre-wired to a stdout webhook sink so the alert pipeline is observable end-to-end with no SaaS dependency.
-- Grafana provisioned via ConfigMap with five lab-core dashboards (monitoring stack, KEDA operations, workload inventory, workload detail, workload CPU deep view) plus the remotely-fetched KEDA Deprecations dashboard from the standalone keda-deprecation-webhook chart.
+- Grafana provisioned via ConfigMap with four lab-core dashboards (monitoring stack, KEDA operations, workload inventory, workload detail) plus the remotely-fetched KEDA Deprecations dashboard from the standalone keda-deprecation-webhook chart.
 - Recording + multi-window multi-burn-rate SLO alert rules for the KEDA control plane (reconcile success, operator UP).
 - Two living demo workloads (resource trigger and Prometheus external trigger) plus a "legacy" workload using KEDA's deprecated CPU-trigger form.
 - One-command install (`make up`), parallel image prepull, idempotent re-installs, and verification scripts.
@@ -192,7 +192,7 @@ Prometheus scrape -> recording rules (5m/1h/6h/7d ratios)
 
 ## 5. Dashboards
 
-Five dashboards live in `lab/grafana/dashboards/` (lab core) + the KDW dashboard (fetched from the [wys1203/keda-deprecation-webhook](https://github.com/wys1203/keda-deprecation-webhook) standalone repo at install time) and are provisioned into the **KEDA Lab** Grafana folder. The webhook itself is now external; `make install-webhook` installs it via Helm from the standalone repo. Each exposes three top-bar template variables: `Datasource`, `Prodsuite`, `Namespace`. The Workload Detail dashboard additionally exposes `ScaledObject` (single-select).
+Four dashboards live in `lab/grafana/dashboards/` (lab core) + the KDW dashboard (fetched from the [wys1203/keda-deprecation-webhook](https://github.com/wys1203/keda-deprecation-webhook) standalone repo at install time) and are provisioned into the **KEDA Lab** Grafana folder. The webhook itself is now external; `make install-webhook` installs it via Helm from the standalone repo. Each exposes three top-bar template variables: `Datasource`, `Prodsuite`, `Namespace`. The Workload Detail dashboard additionally exposes `ScaledObject` (single-select).
 
 ### `monitoring-stack` — Monitoring Stack
 
@@ -231,13 +231,6 @@ Five dashboards live in `lab/grafana/dashboards/` (lab core) + the KDW dashboard
 - **Audience:** Workload owner (one SO drilldown)
 - **Purpose:** Pick `Namespace` and `ScaledObject` from template variables. Generic per-SO view via the same HPA + KEDA metrics — works for all trigger types.
 - **Panels (12):** Current/Desired/Min/Max/External Triggers Active/Paused (6 stats); Replicas over time; Metric Value vs Threshold; Trigger Detail table; Scaler Errors / Fetch Latency p95 / Active State (3 timeseries — populated for external scalers; "No data" for cpu/memory-only SOs, which is correct since the resource-trigger path bypasses KEDA's adapter).
-
-### `keda-workload-cpu` — KEDA Workload — CPU Deep View
-
-- **UID:** `keda-workload-cpu`
-- **Audience:** Workload owner with cpu/memory triggers (deeper view than generic Detail)
-- **Purpose:** Adds per-pod cAdvisor CPU + zone-spread on top of the generic Workload Detail signals. Useful when troubleshooting cpu trigger behavior specifically. Renamed from the original `keda-demo-cpu-scaling` dashboard (queries unchanged — already use `$namespace` template variable, default bumped to `All`).
-- **Panels:** Replicas (current vs desired vs min vs max, "At max for 10m?" indicator, Pods Pending, Replicas over time); CPU (per-pod CPU usage in cores, CPU utilization vs trigger threshold); Pods by phase + zone (using `topology.kubernetes.io/zone`); Active alerts table.
 
 ---
 

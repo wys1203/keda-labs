@@ -2,7 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add two scaler-agnostic Grafana dashboards (Workload Inventory + Workload Detail) and rename the existing demo CPU dashboard into a generic deep view, so workload teams can find any ScaledObject and drill into its scaling behaviour without per-scaler-type custom dashboards.
+> **Revision (2026-05-15, during PR #11 review):** Task 1 (rename `keda-demo-cpu-scaling.json` → `keda-workload-cpu.json`) was **reverted**. The CPU Deep View dashboard was deleted outright — the new Workload Detail covers every trigger type uniformly, and a third overlapping dashboard wasn't worth the maintenance. The plan text below for Task 1 is historical; in the final repo there is no `keda-workload-cpu.json`. Tasks 2–8 still apply (with header-link references to the CPU dashboard removed during the same revision).
+
+**Goal:** Add two scaler-agnostic Grafana dashboards (Workload Inventory + Workload Detail), so workload teams can find any ScaledObject and drill into its scaling behaviour without per-scaler-type custom dashboards.
 
 **Architecture:** Three dashboard JSON files under `lab/grafana/dashboards/` (provisioned via the existing `grafana-dashboards` ConfigMap by `lab/scripts/install-grafana.sh`). Each task edits JSON in place, runs `make install-grafana`, and verifies via Grafana's HTTP API. Coverage verification uses a throwaway shell script that creates stub ScaledObjects for all 7 production trigger types and confirms they show up in the inventory.
 

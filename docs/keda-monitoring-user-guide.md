@@ -32,17 +32,16 @@ You don't need to clone or customize any of these. The Workload Inventory + Work
 |---|---|---|
 | **KEDA Workload Inventory** | `keda-workload-inventory` | **Start here.** Find your ScaledObject in the main table, click into Detail. Shows the full catalog with trigger type, threshold, replicas, paused state, and recent errors. |
 | **KEDA Workload Detail** | `keda-workload-detail` | Drill into one ScaledObject: current vs desired replicas, metric value vs threshold, plus scaler errors/latency for external triggers. Pick `Namespace` and `ScaledObject` from the template variables. |
-| **KEDA Workload — CPU Deep View** | `keda-workload-cpu` | Extra detail for cpu/memory triggers: per-pod cAdvisor CPU usage vs the 50% trigger threshold, pod zone spread, currently-firing alerts. Useful when troubleshooting CPU scaling specifically. |
 | **KEDA Operations** | `keda-operations` | Platform-team's KEDA control-plane health view. Use to confirm "is KEDA itself healthy?" before opening a support ticket. Look for `Operator UP`, `Metrics API Server UP`, `Admission Webhooks UP` to be green. |
 | **KEDA Deprecations** | `keda-deprecations` | Track deprecations that will break on KEDA 2.18. Filter by your namespace to see violations in your workloads (see Section 4). |
 
 ### Click-through
 
-The Inventory's main table has a clickable **ScaledObject** column. Clicking opens the Detail dashboard pre-filtered to that ScaledObject — no manual variable setup needed. Detail's header has return links to Inventory and the CPU Deep view.
+The Inventory's main table has a clickable **ScaledObject** column. Clicking opens the Detail dashboard pre-filtered to that ScaledObject — no manual variable setup needed. Detail's header has a return link to Inventory.
 
 ### Why Detail's "Scaler Errors / Latency / Active State" row reads "No data" for cpu/memory
 
-CPU and memory triggers bypass KEDA's external-scaler path entirely — the HPA reads cAdvisor metrics directly via metrics-server. Those three panels are populated only for external scalers (prometheus, nats-jetstream, redis, cron, metrics-api). When you select a cpu-trigger ScaledObject, "No data" there is correct, not a bug. For deeper CPU visibility, follow the header link to the CPU Deep View dashboard.
+CPU and memory triggers bypass KEDA's external-scaler path entirely — the HPA reads cAdvisor metrics directly via metrics-server. Those three panels are populated only for external scalers (prometheus, nats-jetstream, redis, cron, metrics-api). When you select a cpu-trigger ScaledObject, "No data" there is correct, not a bug. For deeper per-pod CPU visibility, check `container_cpu_usage_seconds_total` directly in Prometheus or use the **KEDA Operations** dashboard's resource panels.
 
 ---
 

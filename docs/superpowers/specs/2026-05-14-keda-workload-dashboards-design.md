@@ -1,9 +1,11 @@
 # keda-workload-dashboards — Design
 
-**Status:** Draft (spec)
+**Status:** Implemented (PR #11) with one revision (see below)
 **Date:** 2026-05-14
 **Owner:** wys1203
-**Scope:** New Grafana dashboards + rename of one existing dashboard + targeted updates to two docs. No Prometheus rule changes; no code changes.
+**Scope:** New Grafana dashboards + targeted updates to two docs. No Prometheus rule changes; no code changes.
+
+> **Revision (2026-05-15, during PR #11 review):** the `keda-workload-cpu` dashboard described below as "kept as a deeper view for cpu/memory triggers" was **dropped**. The original `keda-demo-cpu-scaling.json` was deleted outright (not renamed). Reason: the new Workload Detail dashboard handles every trigger type uniformly; keeping a third overlapping dashboard added maintenance load without clear user value. The two new scaler-agnostic dashboards (Workload Inventory + Workload Detail) stand on their own. References to `keda-workload-cpu`, "CPU Deep View", and the rename procedure below are historical and not in the final repo state. Final dashboards: `keda-workload-inventory`, `keda-workload-detail`, plus the pre-existing `keda-operations`, `monitoring-stack`, and remotely-fetched `keda-deprecations`.
 
 ---
 

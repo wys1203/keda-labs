@@ -31,18 +31,6 @@
       "tooltip": "",
       "type": "link",
       "url": "/d/keda-workload-inventory/keda-workload-inventory"
-    },
-    {
-      "asDropdown": false,
-      "icon": "external link",
-      "includeVars": true,
-      "keepTime": true,
-      "tags": [],
-      "targetBlank": false,
-      "title": "Deep CPU View →",
-      "tooltip": "(useful when this SO uses cpu/memory triggers)",
-      "type": "link",
-      "url": "/d/keda-workload-cpu/keda-workload-cpu"
     }
   ],
   "liveNow": false,
