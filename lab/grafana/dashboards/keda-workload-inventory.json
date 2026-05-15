@@ -214,49 +214,49 @@
           "refId": "A",
           "format": "table",
           "instant": true,
-          "expr": "kube_horizontalpodautoscaler_spec_target_metric{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"}"
+          "expr": "sum by (namespace, horizontalpodautoscaler, metric_name, metric_target_type) (kube_horizontalpodautoscaler_spec_target_metric{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"})"
         },
         {
           "refId": "B",
           "format": "table",
           "instant": true,
-          "expr": "kube_horizontalpodautoscaler_info{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"}"
+          "expr": "sum by (namespace, horizontalpodautoscaler, scaletargetref_kind, scaletargetref_name) (kube_horizontalpodautoscaler_info{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"})"
         },
         {
           "refId": "C",
           "format": "table",
           "instant": true,
-          "expr": "kube_horizontalpodautoscaler_spec_min_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"}"
+          "expr": "sum by (namespace, horizontalpodautoscaler) (kube_horizontalpodautoscaler_spec_min_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"})"
         },
         {
           "refId": "D",
           "format": "table",
           "instant": true,
-          "expr": "kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"}"
+          "expr": "sum by (namespace, horizontalpodautoscaler) (kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"})"
         },
         {
           "refId": "E",
           "format": "table",
           "instant": true,
-          "expr": "kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"}"
+          "expr": "sum by (namespace, horizontalpodautoscaler) (kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"})"
         },
         {
           "refId": "F",
           "format": "table",
           "instant": true,
-          "expr": "kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"}"
+          "expr": "sum by (namespace, horizontalpodautoscaler) (kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler=~\"keda-hpa-.*\", namespace=~\"$namespace\"})"
         },
         {
           "refId": "G",
           "format": "table",
           "instant": true,
-          "expr": "keda_scaled_object_paused{exported_namespace=~\"$namespace\"}"
+          "expr": "sum by (namespace, horizontalpodautoscaler) (label_replace(label_replace(sum by (exported_namespace, scaledObject) (keda_scaled_object_paused{exported_namespace=~\"$namespace\"}), \"namespace\", \"$1\", \"exported_namespace\", \"(.+)\"), \"horizontalpodautoscaler\", \"keda-hpa-$1\", \"scaledObject\", \"(.+)\"))"
         },
         {
           "refId": "H",
           "format": "table",
           "instant": true,
-          "expr": "increase(keda_scaled_object_errors_total{exported_namespace=~\"$namespace\"}[1h])"
+          "expr": "sum by (namespace, horizontalpodautoscaler) (label_replace(label_replace(sum by (exported_namespace, scaledObject) (increase(keda_scaled_object_errors_total{exported_namespace=~\"$namespace\"}[1h])), \"namespace\", \"$1\", \"exported_namespace\", \"(.+)\"), \"horizontalpodautoscaler\", \"keda-hpa-$1\", \"scaledObject\", \"(.+)\"))"
         }
       ],
       "transformations": [
